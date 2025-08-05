@@ -1,29 +1,58 @@
-import Link from "next/link";
-import { PowerIcon } from "@heroicons/react/24/outline";
-import NavLinks from "@/components/NavLinks";
-import Logo from "./Logo";
+// TODO: Permisions Later on
+// import { useSession } from 'next-auth/react';
+// ...
+// const { data } = useSession();
+// const roles = data?.user.memberships[tid] ?? [];
+// const canSeeSettings = roles.includes('OWNER') || roles.includes('ADMIN');
+// ...
+// {canSeeSettings && <NavLink slug="settings" ... />}
 
-export default function SideNav() {
+"use client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  HomeIcon,
+  UsersIcon,
+  CalendarIcon,
+  MapPinIcon,
+  ShieldCheckIcon,
+  Cog6ToothIcon,
+} from "@heroicons/react/24/outline";
+import clsx from "clsx";
+
+const navItems = [
+  { label: "Home", slug: "home", icon: HomeIcon },
+  { label: "Teams", slug: "teams", icon: UsersIcon },
+  { label: "Schedule", slug: "schedule", icon: CalendarIcon },
+  { label: "Venues", slug: "venues", icon: MapPinIcon },
+  { label: "Staff", slug: "staff", icon: ShieldCheckIcon },
+  { label: "Settings", slug: "settings", icon: Cog6ToothIcon },
+] as const;
+
+export function SideNav({ tid }: { tid: string }) {
+  const pathname = usePathname();
+
   return (
-    <div className="flex h-full flex-col px-3 py-4 md:px-2">
-      <Link
-        className="mb-2 flex h-20 items-end justify-start rounded-md bg-whitep md:h-40"
-        href="/"
-      >
-        <div className="w-32 md:w-40 flex items-center justify-center">
-          <Logo />
-        </div>
-      </Link>
-      <div className="flex grow flex-row justify-between space-x-2 md:flex-col md:space-x-0 md:space-y-2">
-        <NavLinks />
-        <div className="hidden h-auto w-full grow rounded-md bg-gray-50 md:block"></div>
-        <form>
-          <button className="flex h-[48px] w-full grow items-center justify-center gap-2 rounded-md bg-gray-50 p-3 text-sm font-medium hover:bg-sky-100 hover:text-blue-600 md:flex-none md:justify-start md:p-2 md:px-3">
-            <PowerIcon className="w-6" />
-            <div className="hidden md:block">Sign Out</div>
-          </button>
-        </form>
-      </div>
-    </div>
+    <nav className="flex flex-col gap-1 p-2 w-56 border-r">
+      {navItems.map(({ label, slug, icon: Icon }) => {
+        const href = `/dashboard/${tid}/${slug}`;
+        const active = pathname?.startsWith(href);
+        return (
+          <Link
+            key={slug}
+            href={href}
+            className={clsx(
+              "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium",
+              active
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover:bg-accent"
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
