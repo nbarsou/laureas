@@ -1,4 +1,5 @@
 // components/Header.tsx
+// TODO: fix depreceated things
 "use client";
 
 import { Fragment } from "react";

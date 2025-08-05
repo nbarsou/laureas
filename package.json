@@ -12,13 +12,16 @@
     "@headlessui/react": "^2.2.7",
     "@heroicons/react": "^2.2.0",
     "clsx": "^2.1.1",
+    "mongoose": "^8.17.0",
     "next": "15.4.5",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "zod": "^4.0.14"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/mongoose": "^5.11.97",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
