@@ -7,5 +7,5 @@ export default async function Page(props: {
   const params = await props.params;
   const id = params.tid;
   // server-side redirect – no component ever reaches the client
-  redirect(`/dashboard/${id}/home`);
+  redirect(`/tournament/${id}/home`);
 }

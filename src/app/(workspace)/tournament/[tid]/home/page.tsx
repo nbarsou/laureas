@@ -1,19 +1,19 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: "Edit Invoice",
 };
 
-export default async function Page(props: {
+export default async function Page(context: {
   params: Promise<{ tid: string }>;
 }) {
-  const params = await props.params;
-  const id = params.tid;
+  const tid = (await context.params).tid;
 
   return (
     <main>
-      <p>Teams for tournamnet {params.tid} here</p>
+      <p>Home for {tid} tournament</p>
     </main>
   );
 }

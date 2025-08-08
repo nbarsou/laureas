@@ -11,6 +11,8 @@
   "dependencies": {
     "@headlessui/react": "^2.2.7",
     "@heroicons/react": "^2.2.0",
+    "@mirite/zod-to-mongoose": "^0.1.1",
+    "@zodyac/zod-mongoose": "^4.1.0",
     "clsx": "^2.1.1",
     "mongoose": "^8.17.0",
     "next": "15.4.5",
