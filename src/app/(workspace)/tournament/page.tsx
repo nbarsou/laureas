@@ -1,4 +1,4 @@
-// e.g. in /app/dashboard/teams/page.tsx  (RSC)
+// /tournament/page.tsx  (RSC)
 import TournamentsTable from "@/components/tournament/TournamentTable";
 import NewButton from "@/components/common/NewButton";
 
@@ -8,7 +8,7 @@ export default function TournamentsPage() {
       <h1 className="text-xl font-bold">Tournaments</h1>
       <div className="flex items-center justify-between">
         <div />
-        <NewButton href={`/tournament/new`}>New&nbsp;Tournament</NewButton>
+        <NewButton href={`/tournament/new`}>New Tournament</NewButton>
       </div>
       <TournamentsTable />
     </section>

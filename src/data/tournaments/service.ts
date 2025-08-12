@@ -105,16 +105,17 @@ export async function updateTournament(
   // ✅ convert FormData -> plain object of strings
   const raw = Object.fromEntries(formData); // { _id, name, startDate, endDate }
 
-  const parsed = TournamentSchema.safeParse(raw);
-  if (!parsed.success) {
-    const { fieldErrors } = parsed.error.flatten();
+  const validatedFields = TournamentSchema.safeParse(raw);
+
+  if (!validatedFields.success) {
+    const { fieldErrors } = validatedFields.error.flatten();
     return {
       message: "Missing Fields. Failed to Update Tournament.",
       errors: fieldErrors,
     };
   }
 
-  const { _id, name, startDate, endDate } = parsed.data;
+  const { _id, name, startDate, endDate } = validatedFields.data;
 
   try {
     await getConn();

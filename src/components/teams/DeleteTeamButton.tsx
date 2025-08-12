@@ -1,12 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { deleteTournament } from "@/data/tournaments/service";
+import { deleteTeam } from "@/data/teams/service";
 import { TrashIcon } from "@heroicons/react/16/solid";
 
-type Props = { id: string };
-
-/* --- wire-frame button styling shared by both buttons --- */
 const btnBase: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -23,23 +19,9 @@ const btnBase: React.CSSProperties = {
   marginLeft: 4,
 };
 
-/* ---------- Edit (client-side navigation) ---------- */
-export function EditButton({ id }: Props) {
-  const router = useRouter();
-  return (
-    <button
-      style={btnBase}
-      onClick={() => router.push(`/tournament/edit/${id}`)}
-    >
-      Edit
-    </button>
-  );
-}
-
-/* ---------- Delete (server action) ---------- */
 export function DeleteButton({ id }: { id: string }) {
   const handleDelete = async (formData: FormData) => {
-    await deleteTournament(id);
+    await deleteTeam(id);
   };
   return (
     <form action={handleDelete} style={{ display: "inline" }}>

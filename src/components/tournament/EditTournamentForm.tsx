@@ -32,7 +32,7 @@ export function EditTournamentForm({
     >
       <h1 className="text-2xl font-semibold">Edit Tournament</h1>
 
-      <input type="hidden" name="_id" defaultValue={tournament._id} />
+      <input type="hidden" name="_id" value={tournament._id} />
 
       {/* name */}
       <div>

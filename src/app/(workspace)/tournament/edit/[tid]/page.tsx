@@ -1,6 +1,6 @@
 // app/tournaments/edit/[id]/page.tsx
 import { fetchTournamentById } from "@/data/tournaments/service";
-import { EditTournamentForm } from "@/components/tournament/EditTournamentForm"; // <-- fix typo
+import { EditTournamentForm } from "@/components/tournament/EditTournamentForm";
 
 type TournamentDTO = {
   _id: string;

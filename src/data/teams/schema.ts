@@ -7,7 +7,7 @@ export const TeamSchema = z.object({
   _id: zObjectId,
   tournamentId: zObjectId,
   name: z.string(),
-  managers: z.email(),
+  manager: z.email(),
 });
 export type Team = z.infer<typeof TeamSchema>;
 
@@ -19,7 +19,7 @@ const mongooseSchema = new Schema(
       required: true,
     },
     name: { type: String, required: true, trim: true },
-    managers: {
+    manager: {
       type: String, // z.email() → single email
       trim: true,
       lowercase: true,

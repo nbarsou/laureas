@@ -1,16 +1,16 @@
-import { fetchAllTournaments } from "@/data/tournaments/service";
+import { fetchAllTeams } from "@/data/teams/service";
 import { EditButton } from "@/components/common/EditButton";
-import { DeleteButton } from "@/components/tournament/DeleteTournamentButton";
+import { DeleteButton } from "@/components/teams/DeleteTeamButton";
 import ClickableRow from "@/components/tournament/ClickableRow";
 
 export default async function TournamentsTable() {
-  const tournaments = await fetchAllTournaments(); // lean objects
+  const teams = await fetchAllTeams(); // lean objects
 
   return (
     <table style={{ width: "100%", borderCollapse: "collapse" }}>
       <thead>
         <tr>
-          {["Name", "Start Date", "End Date", ""].map((h) => (
+          {["Name", "Manager", ""].map((h) => (
             <th
               key={h}
               style={{
@@ -26,34 +26,21 @@ export default async function TournamentsTable() {
       </thead>
 
       <tbody>
-        {tournaments?.map((t: any) => (
+        {teams?.map((t: any) => (
           <ClickableRow
             key={t._id}
-            href={`/tournament/${t._id?.toString?.() ?? t._id}`}
+            href={`/tournament/${t.tournamentId.toString()}/teams/${t._id.toString()}`}
           >
             <td style={cellStyle}>{t.name}</td>
-            <td style={cellStyle}>
-              {" "}
-              {new Date(t.startDate).toLocaleDateString("en-US", {
-                weekday: "short",
-                day: "numeric",
-                month: "short",
-              })}
-            </td>
-            <td style={cellStyle}>
-              {" "}
-              {new Date(t.endDate).toLocaleDateString("en-US", {
-                weekday: "short",
-                day: "numeric",
-                month: "short",
-              })}
-            </td>
+            <td style={cellStyle}>{t.manager}</td>
             <td
               data-no-row-link
               style={{ ...cellStyle, textAlign: "right", whiteSpace: "nowrap" }}
             >
               <div style={{ display: "inline-flex", gap: 8 }}>
-                <EditButton path={`/tournament/edit/${t._id.toString()}`} />
+                <EditButton
+                  path={`/tournament/${t.tournamentId.toString()}/teams/edit/${t._id.toString()}`}
+                />
                 <DeleteButton id={t._id.toString()} />
               </div>
             </td>
