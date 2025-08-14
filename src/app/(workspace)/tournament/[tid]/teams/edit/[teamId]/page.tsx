@@ -11,7 +11,7 @@ export type TeamDTO = {
 };
 
 export default async function Page({
-  params: { tid, teamId },
+  params: { teamId },
 }: {
   params: { tid: string; teamId: string };
 }) {

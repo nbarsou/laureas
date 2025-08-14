@@ -1,16 +1,21 @@
-import { fetchAllTeams } from "@/data/teams/service";
-import { EditButton } from "@/components/common/EditButton";
-import { DeleteButton } from "@/components/teams/DeleteTeamButton";
+import { fetchPlayersByTeam } from "@/data/players/service";
+// import { EditButton } from "@/components/common/EditButton";
+import { DeleteButton } from "@/components/players/DeletePlayerButton";
 import ClickableRow from "@/components/common/ClickableRow";
 
-export default async function TournamentsTable() {
-  const teams = await fetchAllTeams(); // lean objects
+interface Props {
+  tid: string;
+  teamId: string;
+}
+
+export default async function PlayersTable({ tid, teamId }: Props) {
+  const players = await fetchPlayersByTeam(teamId);
 
   return (
     <table style={{ width: "100%", borderCollapse: "collapse" }}>
       <thead>
         <tr>
-          {["Name", "Manager", ""].map((h) => (
+          {["First Name", "Last Name", " Number", ""].map((h) => (
             <th
               key={h}
               style={{
@@ -24,23 +29,22 @@ export default async function TournamentsTable() {
           ))}
         </tr>
       </thead>
-
       <tbody>
-        {teams?.map((t: any) => (
+        {players?.map((t: any) => (
           <ClickableRow
             key={t._id}
-            href={`/tournament/${t.tournamentId.toString()}/teams/${t._id.toString()}`}
+            href={`/tournament/${tid}/teams/${t.teamId.toString()}/player/${
+              t._id
+            }`}
           >
-            <td style={cellStyle}>{t.name}</td>
-            <td style={cellStyle}>{t.manager}</td>
+            <td style={cellStyle}>{t.firstName}</td>
+            <td style={cellStyle}>{t.lastName}</td>
+            <td style={cellStyle}>{t.number}</td>
             <td
               data-no-row-link
               style={{ ...cellStyle, textAlign: "right", whiteSpace: "nowrap" }}
             >
               <div style={{ display: "inline-flex", gap: 8 }}>
-                <EditButton
-                  path={`/tournament/${t.tournamentId.toString()}/teams/edit/${t._id.toString()}`}
-                />
                 <DeleteButton id={t._id.toString()} />
               </div>
             </td>

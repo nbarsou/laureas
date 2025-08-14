@@ -1,6 +1,5 @@
 // app/dashboard/layout.tsx
 import { Header } from "@/components/Header";
-import { SideNav } from "@/components/SideNav"; // ← your earlier sidebar
 // import { auth } from '@/lib/auth';                     // wrapper around NextAuth getServerSession
 
 export default async function DashboardLayout({

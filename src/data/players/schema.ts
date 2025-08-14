@@ -8,7 +8,7 @@ export const PlayerSchema = z.object({
   teamId: zObjectId,
   firstName: z.string(),
   lastName: z.string(),
-  number: z.number().int().positive().max(99),
+  number: z.coerce.number().int().positive().max(99),
 });
 export type Player = z.infer<typeof PlayerSchema>;
 

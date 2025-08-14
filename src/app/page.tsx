@@ -1,4 +1,3 @@
-import Button from "@/components/Button";
 import Logo from "@/components/Logo";
 import Link from "next/link";
 
@@ -10,7 +9,7 @@ export default function HomePage() {
         <h1 className="text-2xl font-bold ml-4">Laureas</h1>
         <div className="ml-auto" />
         <Link
-          href="/dashboard"
+          href="/tournament"
           className="px-6 py-2 rounded border border-black text-black hover:bg-gray-100"
         >
           Login

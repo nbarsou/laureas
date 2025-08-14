@@ -1,6 +1,6 @@
 "use client";
 
-import { deleteTournament } from "@/data/tournaments/service";
+import { deletePlayer } from "@/data/players/service";
 import { TrashIcon } from "@heroicons/react/16/solid";
 
 const btnBase: React.CSSProperties = {
@@ -21,8 +21,9 @@ const btnBase: React.CSSProperties = {
 
 export function DeleteButton({ id }: { id: string }) {
   const handleDelete = async () => {
-    await deleteTournament(id);
+    await deletePlayer(id);
   };
+
   return (
     <form action={handleDelete} style={{ display: "inline" }}>
       <button type="submit" aria-label="Delete" style={btnBase}>

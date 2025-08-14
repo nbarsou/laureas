@@ -47,8 +47,8 @@ export async function createPlayer(prevState: State, formData: FormData) {
     return { message: "Database Error: Failed to Create Player." };
   }
 
-  revalidatePath("/dashboard/players");
-  redirect("/dashboard/players");
+  revalidatePath("/tournament/players");
+  redirect("/tournament/players");
 }
 
 /* ════════════════  R E A D  ════════════════ */
@@ -64,6 +64,18 @@ export async function fetchPlayerById(id: string) {
   zObjectId.parse(id);
   await getConn();
   return PlayerModel.findById(id).lean();
+}
+
+export async function fetchPlayersByTeam(teamId: string) {
+  // Validate the teamId
+  zObjectId.parse(teamId);
+
+  await getConn();
+
+  // Get all players from those teams
+  const players = await PlayerModel.find({ teamId: { $in: teamId } }).lean();
+
+  return players;
 }
 
 /* ════════════════  U P D A T E  ════════════════ */
@@ -100,8 +112,8 @@ export async function updatePlayer(
     return { message: "Database Error: Failed to Update Player." };
   }
 
-  revalidatePath("/dashboard/players");
-  redirect("/dashboard/players");
+  revalidatePath("/tournament/players");
+  redirect("/tournament/players");
 }
 
 /* ════════════════  D E L E T E  ════════════════ */
@@ -120,7 +132,7 @@ export async function deletePlayer(id: string) {
     return { message: "Database Error: Failed to Delete Player" };
   }
 
-  revalidatePath("/dashboard/players");
+  revalidatePath("/tournament/players");
   /* stay on same page after deletion */
   return {};
 }

@@ -1,7 +1,7 @@
 import { fetchAllTournaments } from "@/data/tournaments/service";
 import { EditButton } from "@/components/common/EditButton";
 import { DeleteButton } from "@/components/tournament/DeleteTournamentButton";
-import ClickableRow from "@/components/tournament/ClickableRow";
+import ClickableRow from "@/components/common/ClickableRow";
 
 export default async function TournamentsTable() {
   const tournaments = await fetchAllTournaments(); // lean objects
