@@ -37,6 +37,7 @@ import {
 import { getConn } from "@/data/db";
 import { logger } from "@/lib/logging";
 import { zObjectId } from "@/data/_helpers";
+import { ActionResult } from "@/data/_helpers";
 
 /* Write-safe schema */
 const WriteTournament = TournamentSchema.omit({
@@ -51,7 +52,10 @@ export type State = {
 
 /* ════════════════  C R E A T E  ════════════════ */
 
-export async function createTournament(prevState: State, formData: FormData) {
+export async function createTournament(
+  prevState: State,
+  formData: FormData
+): Promise<ActionResult> {
   const validatedFields = WriteTournament.safeParse({
     name: formData.get("name"),
     startDate: formData.get("startDate"),
@@ -60,6 +64,7 @@ export async function createTournament(prevState: State, formData: FormData) {
 
   if (!validatedFields.success) {
     return {
+      ok: false,
       errors: validatedFields.error.flatten().fieldErrors,
       message: "Missing Fields. Failed to Create Tournament.",
     };
@@ -70,7 +75,10 @@ export async function createTournament(prevState: State, formData: FormData) {
     await TournamentModel.create(validatedFields.data);
   } catch (error: any) {
     logger.error(error);
-    return { message: "Database Error: Failed to Create Tournament." };
+    return {
+      ok: false,
+      message: "Database Error: Failed to Create Tournament.",
+    };
   }
 
   revalidatePath("/tournament");
@@ -79,10 +87,12 @@ export async function createTournament(prevState: State, formData: FormData) {
 
 /* ════════════════  R E A D  ════════════════ */
 
-export async function fetchAllTournaments() {
+export async function fetchAllTournaments(): Promise<Tournament[]> {
   await getConn();
   /* lean() returns plain objects → smaller payload for RSC */
-  return TournamentModel.find().sort({ startDate: 1 }).lean();
+  return await TournamentModel.find()
+    .sort({ startDate: 1 })
+    .lean<Tournament[]>();
 }
 
 export async function fetchTournamentById(
@@ -101,7 +111,7 @@ export async function fetchTournamentById(
 export async function updateTournament(
   prevState: State,
   formData: FormData
-): Promise<State> {
+): Promise<ActionResult> {
   // ✅ convert FormData -> plain object of strings
   const raw = Object.fromEntries(formData); // { _id, name, startDate, endDate }
 
@@ -110,6 +120,7 @@ export async function updateTournament(
   if (!validatedFields.success) {
     const { fieldErrors } = validatedFields.error.flatten();
     return {
+      ok: false,
       message: "Missing Fields. Failed to Update Tournament.",
       errors: fieldErrors,
     };
@@ -129,6 +140,7 @@ export async function updateTournament(
   } catch (error: any) {
     logger.error(error);
     return {
+      ok: false,
       message: "Database Error: Failed to Update Tournament.",
       errors: {},
     };
@@ -139,11 +151,14 @@ export async function updateTournament(
 }
 
 /* ════════════════  D E L E T E  ════════════════ */
-export async function deleteTournament(id: string) {
+export async function deleteTournament(id: string): Promise<ActionResult> {
   const idCheck = zObjectId.safeParse(id);
 
   if (!idCheck.success) {
-    return { errors: { id: ["Invalid id"] }, message: "Invalid id." };
+    return {
+      ok: false,
+      message: "Invalid id.",
+    };
   }
 
   try {
@@ -151,10 +166,13 @@ export async function deleteTournament(id: string) {
     await TournamentModel.findByIdAndDelete(idCheck.data);
   } catch (error: any) {
     logger.error(error);
-    return { message: "Database Error: Failed to Delete Tournament" };
+    return {
+      ok: false,
+      message: "Database Error: Failed to Delete Tournament",
+    };
   }
 
   revalidatePath("/tournament");
   /* stay on same page after deletion */
-  return {};
+  return { ok: true };
 }

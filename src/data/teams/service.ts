@@ -7,6 +7,7 @@ import { TeamSchema, TeamModel, Team } from "@/data/teams/schema";
 import { getConn } from "@/data/db";
 import { logger } from "@/lib/logging";
 import { zObjectId } from "@/data/_helpers";
+import { ActionResult } from "@/data/_helpers";
 
 /* Write-safe schema */
 const WriteTeam = TeamSchema.omit({
@@ -21,7 +22,10 @@ export type State = {
 
 /* ════════════════  C R E A T E  ════════════════ */
 
-export async function createTeam(prevState: State, formData: FormData) {
+export async function createTeam(
+  prevState: State,
+  formData: FormData
+): Promise<ActionResult> {
   const validatedFields = WriteTeam.safeParse({
     tournamentId: formData.get("tournamentId"),
     name: formData.get("name"),
@@ -30,6 +34,7 @@ export async function createTeam(prevState: State, formData: FormData) {
 
   if (!validatedFields.success) {
     return {
+      ok: false,
       errors: validatedFields.error.flatten().fieldErrors,
       message: "Missing Fields. Failed to Create Team.",
     };
@@ -40,7 +45,7 @@ export async function createTeam(prevState: State, formData: FormData) {
     await TeamModel.create(validatedFields.data);
   } catch (error: any) {
     logger.error(error);
-    return { message: "Database Error: Failed to Create Team." };
+    return { ok: false, message: "Database Error: Failed to Create Team." };
   }
 
   // Use the tid from the form for both revalidation + redirect
@@ -52,10 +57,10 @@ export async function createTeam(prevState: State, formData: FormData) {
 
 /* ════════════════  R E A D  ════════════════ */
 
-export async function fetchAllTeams() {
+export async function fetchAllTeams(): Promise<Team[]> {
   await getConn();
   /* lean() returns plain objects → smaller payload for RSC */
-  return TeamModel.find().sort({ name: 1 }).lean();
+  return TeamModel.find().sort({ name: 1 }).lean<Team[]>();
 }
 
 export async function fetchTeamById(id: string): Promise<Team | null> {
@@ -68,13 +73,17 @@ export async function fetchTeamById(id: string): Promise<Team | null> {
 
 /* ════════════════  U P D A T E  ════════════════ */
 
-export async function updateTeam(prevState: State, formData: FormData) {
+export async function updateTeam(
+  prevState: State,
+  formData: FormData
+): Promise<ActionResult> {
   const raw = Object.fromEntries(formData);
 
   const validatedFields = TeamSchema.safeParse(raw);
 
   if (!validatedFields.success) {
     return {
+      ok: false,
       errors: validatedFields.error.flatten().fieldErrors,
       message: "Missing Fields. Failed to Update Team.",
     };
@@ -94,7 +103,7 @@ export async function updateTeam(prevState: State, formData: FormData) {
     );
   } catch (error: any) {
     logger.error(error);
-    return { message: "Database Error: Failed to Update Team." };
+    return { ok: false, message: "Database Error: Failed to Update Team." };
   }
 
   revalidatePath(`/tournament/${tournamentId}/teams`);
