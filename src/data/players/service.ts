@@ -3,7 +3,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { PlayerSchema, PlayerModel } from "@/data/players/schema";
+import { PlayerSchema, PlayerModel, Player } from "@/data/players/schema";
 import { getConn } from "@/data/db";
 import { logger } from "@/lib/logging";
 import { zObjectId } from "@/data/_helpers";
@@ -59,11 +59,11 @@ export async function fetchAllPlayers() {
   return PlayerModel.find().sort({ name: 1 }).lean();
 }
 
-export async function fetchPlayerById(id: string) {
+export async function fetchPlayerById(id: string): Promise<Player | null> {
   /* throws if not a valid ObjectId */
   zObjectId.parse(id);
   await getConn();
-  return PlayerModel.findById(id).lean();
+  return PlayerModel.findById(id).lean<Player>();
 }
 
 export async function fetchPlayersByTeam(teamId: string) {
@@ -80,12 +80,8 @@ export async function fetchPlayersByTeam(teamId: string) {
 
 /* ════════════════  U P D A T E  ════════════════ */
 
-export async function updatePlayer(
-  id: string,
-  prevState: State,
-  formData: FormData
-) {
-  const idCheck = zObjectId.safeParse(formData.get("id"));
+export async function updatePlayer(prevState: State, formData: FormData) {
+  const idCheck = zObjectId.safeParse(formData.get("_id"));
 
   const validatedFields = WritePlayer.safeParse({
     teamId: formData.get("teamId"),

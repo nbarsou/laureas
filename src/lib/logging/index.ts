@@ -1,8 +1,8 @@
 // // src/lib/logging/index.ts
-// import { consoleLogger } from "./console";
-// import { Logger } from "./types";
+import { consoleLogger } from "./console";
+import { Logger } from "./types";
 
-// let logger: Logger = consoleLogger; // default
+let logger: Logger = consoleLogger; // default
 
 // // Server-side? swap automatically if WINSTON=true
 // if (typeof window === "undefined" && process.env.WINSTON === "true") {
@@ -11,6 +11,6 @@
 //   logger = winstonLogger;
 // }
 
-// // Re-export the concrete logger + helpers if needed
-// export { logger };
-// export * from "./types";
+// Re-export the concrete logger + helpers if needed
+export { logger };
+export * from "./types";

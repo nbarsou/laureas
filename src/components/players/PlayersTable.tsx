@@ -2,6 +2,7 @@ import { fetchPlayersByTeam } from "@/data/players/service";
 // import { EditButton } from "@/components/common/EditButton";
 import { DeleteButton } from "@/components/players/DeletePlayerButton";
 import ClickableRow from "@/components/common/ClickableRow";
+import { EditButton } from "../common/EditButton";
 
 interface Props {
   tid: string;
@@ -46,6 +47,9 @@ export default async function PlayersTable({ tid, teamId }: Props) {
             >
               <div style={{ display: "inline-flex", gap: 8 }}>
                 <DeleteButton id={t._id.toString()} />
+                <EditButton
+                  path={`/tournament/${tid}/teams/${t.teamId.toString()}/player/edit/${t._id.toString()}`}
+                />
               </div>
             </td>
           </ClickableRow>
