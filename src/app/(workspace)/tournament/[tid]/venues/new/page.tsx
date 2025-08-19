@@ -1,6 +1,5 @@
 // import { notFound } from "next/navigation";
-import NewButton from "@/components/common/NewButton";
-import VenuesTable from "@/components/venues/VenuesTable";
+import { NewVenueForm } from "@/components/venues/NewVenueForm";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -15,11 +14,7 @@ export default async function Page(props: {
 
   return (
     <main>
-      <div className="flex items-center justify-between">
-        <div />
-        <NewButton href={`/tournament/${tid}/venues/new`}>Add Venue</NewButton>
-      </div>
-      <VenuesTable tid={tid} />
+      <NewVenueForm tournamentId={tid} />
     </main>
   );
 }

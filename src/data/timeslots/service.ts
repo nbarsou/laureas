@@ -64,8 +64,10 @@ export async function createTimeslot(
     return { ok: false, message: "Database Error: Failed to create timeslot." };
   }
 
-  revalidatePath("/dashboard/timeslots");
-  redirect("/dashboard/timeslots");
+  revalidatePath(
+    `/tournament/${form.get("tid")}/venues/${parsed.data.venue_id}`
+  );
+  redirect(`/tournament/${form.get("tid")}/venues/${parsed.data.venue_id}`);
 }
 
 /** ---------- READ (list all active, optional by venue) ---------- */
@@ -134,8 +136,13 @@ export async function updateTimeslot(
     return { ok: false, message: "Database Error: Failed to update timeslot." };
   }
 
-  revalidatePath("/dashboard/timeslots");
-  redirect("/dashboard/timeslots");
+  revalidatePath("/tournament/timeslots");
+  const noRedirect = String(form.get("no_redirect") ?? "false") === "true";
+  if (noRedirect) {
+    return { ok: true, message: "Timeslot created." };
+  }
+
+  redirect("/tournament");
 }
 
 /** ---------- PARTIAL UPDATE: toggle is_active ---------- */

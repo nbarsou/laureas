@@ -1,11 +1,10 @@
 // app/account/page.tsx
 import { redirect } from "next/navigation";
 
-export default async function Page(props: {
-  params: Promise<{ tid: string }>;
-}) {
-  const params = await props.params;
-  const id = params.tid;
+type Params = { tid: string };
+
+export default async function Page({ params }: { params: Promise<Params> }) {
+  const { tid } = await params;
   // server-side redirect – no component ever reaches the client
-  redirect(`/tournament/${id}/home`);
+  redirect(`/tournament/${tid}/home`);
 }

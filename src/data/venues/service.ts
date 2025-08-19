@@ -11,23 +11,29 @@ import { zObjectId } from "@/data/_helpers";
 /** ---------- Types ---------- */
 const WriteVenue = VenueSchema.omit({ _id: true });
 
-export type VenueState = {
-  errors?: { name?: string[]; address?: string[]; surface_type?: string[] };
+export type State = {
+  errors?: {
+    tournamentId?: string[];
+    name?: string[];
+    address?: string[];
+    surface_type?: string[];
+  };
   message?: string | null;
 };
 
 export type ActionResult =
   | { ok: true }
-  | { ok: false; message: string; errors?: VenueState["errors"] };
+  | { ok: false; message: string; errors?: State["errors"] };
 
 export type VenueLean = Omit<Venue, "_id"> & { _id: string };
 
 /** ---------- CREATE ---------- */
 export async function createVenue(
-  prev: VenueState,
+  prev: ActionResult,
   form: FormData
 ): Promise<ActionResult> {
   const parsed = WriteVenue.safeParse({
+    tournamentId: form.get("tournamentId"),
     name: form.get("name"),
     address: form.get("address"),
     surface_type: form.get("surface_type") || "other",
@@ -49,8 +55,8 @@ export async function createVenue(
     return { ok: false, message: "Database Error: Failed to create venue." };
   }
 
-  revalidatePath("/dashboard/venues");
-  redirect("/dashboard/venues");
+  revalidatePath(`/tournament/${parsed.data.tournamentId}/venues`);
+  redirect(`/tournament/${parsed.data.tournamentId}/venues`);
 }
 
 /** ---------- READ (list) ---------- */
@@ -69,19 +75,21 @@ export async function fetchVenueById(id: string): Promise<Venue | null> {
 /** ---------- UPDATE ---------- */
 export async function updateVenue(
   id: string,
-  prev: VenueState,
-  form: FormData
+  prev: ActionResult,
+  formData: FormData
 ): Promise<ActionResult> {
   const idCheck = zObjectId.safeParse(id);
   if (!idCheck.success) return { ok: false, message: "Invalid id." };
 
   const parsed = WriteVenue.safeParse({
-    name: form.get("name"),
-    address: form.get("address"),
-    surface_type: form.get("surface_type") || "other",
+    tournamentId: formData.get("tournamentId"),
+    name: formData.get("name"),
+    address: formData.get("address"),
+    surface_type: formData.get("surface_type") || "other",
   });
 
   if (!parsed.success) {
+    console.log(parsed);
     return {
       ok: false,
       errors: parsed.error.flatten().fieldErrors,
@@ -100,8 +108,8 @@ export async function updateVenue(
     return { ok: false, message: "Database Error: Failed to update venue." };
   }
 
-  revalidatePath("/dashboard/venues");
-  redirect("/dashboard/venues");
+  revalidatePath(`/tournament/${parsed.data.tournamentId}/venues`);
+  redirect(`/tournament/${parsed.data.tournamentId}/venues`);
 }
 
 /** ---------- DELETE ---------- */
@@ -117,6 +125,6 @@ export async function deleteVenue(id: string): Promise<ActionResult> {
     return { ok: false, message: "Database Error: Failed to delete venue." };
   }
 
-  revalidatePath("/dashboard/venues");
+  revalidatePath("/tournament/venues");
   return { ok: true };
 }
