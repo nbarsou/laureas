@@ -63,6 +63,18 @@ export async function fetchAllTeams(): Promise<Team[]> {
   return TeamModel.find().sort({ name: 1 }).lean<Team[]>();
 }
 
+export async function fetchTeamsByTournamentId(
+  tournamentId: string
+): Promise<Team[]> {
+  await getConn();
+
+  // Validate the id early (throws ZodError on bad input)
+  const tid = zObjectId.parse(tournamentId);
+
+  // Mongoose will cast the string to ObjectId automatically
+  return TeamModel.find({ tournamentId: tid }).sort({ name: 1 }).lean<Team[]>();
+}
+
 export async function fetchTeamById(id: string): Promise<Team | null> {
   /* throws if not a valid ObjectId */
   if (!id) throw new Error("Missing route param id");

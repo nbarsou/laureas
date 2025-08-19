@@ -11,11 +11,12 @@ type PlayerDTO = {
   number: number; // 1..99
 };
 
-export default async function Page({
-  params,
-}: {
-  params: { teamId: string; playerId: string };
-}) {
+export default async function Page(
+  props: {
+    params: Promise<{ teamId: string; playerId: string }>;
+  }
+) {
+  const params = await props.params;
   const { playerId } = params;
 
   const player = await fetchPlayerById(playerId); // expect lean: Player | null

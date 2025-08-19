@@ -65,6 +65,17 @@ export async function fetchVenues(): Promise<Venue[]> {
   return await VenueModel.find().sort({ name: 1 }).lean<Venue[]>();
 }
 
+export async function fetchVenuesByTournamentId(
+  tournamentId: string
+): Promise<Venue[]> {
+  await getConn();
+
+  const tid = zObjectId.parse(tournamentId);
+
+  return await VenueModel.find({ tournamenId: tid })
+    .sort({ name: 1 })
+    .lean<Venue[]>();
+}
 /** ---------- READ (by id) ---------- */
 export async function fetchVenueById(id: string): Promise<Venue | null> {
   zObjectId.parse(id);

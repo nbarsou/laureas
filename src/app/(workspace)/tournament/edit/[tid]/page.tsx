@@ -9,7 +9,10 @@ type TournamentDTO = {
   endDate: string; // ISO
 };
 
-export default async function Page({ params }: { params: { tid: string } }) {
+export default async function Page(props: {
+  params: Promise<{ tid: string }>;
+}) {
+  const params = await props.params;
   const t = await fetchTournamentById(params.tid);
   if (!t) {
     return <div className="mt-12 text-center">Tournament not found.</div>;

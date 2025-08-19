@@ -1,10 +1,10 @@
-import { fetchAllTeams } from "@/data/teams/service";
+import { fetchAllTeams, fetchTeamsByTournamentId } from "@/data/teams/service";
 import { EditButton } from "@/components/common/EditButton";
 import { DeleteButton } from "@/components/teams/DeleteTeamButton";
 import ClickableRow from "@/components/common/ClickableRow";
 
-export default async function TournamentsTable() {
-  const teams = await fetchAllTeams(); // lean objects
+export default async function TournamentsTable({ tid }: { tid: string }) {
+  const teams = await fetchTeamsByTournamentId(tid); // lean objects
 
   return (
     <table style={{ width: "100%", borderCollapse: "collapse" }}>

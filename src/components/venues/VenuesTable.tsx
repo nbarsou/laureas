@@ -1,5 +1,5 @@
 // components/venues/VenuesTable.tsx
-import { fetchVenues } from "@/data/venues/service";
+import { fetchVenues, fetchVenuesByTournamentId } from "@/data/venues/service";
 import { DeleteButton } from "@/components/venues/DeleteVenueButton";
 import ClickableRow from "@/components/common/ClickableRow";
 import { EditButton } from "@/components/common/EditButton";
@@ -12,7 +12,7 @@ type VenueRow = {
 };
 
 export default async function VenuesTable({ tid }: { tid: string }) {
-  const venues = (await fetchVenues()) as VenueRow[];
+  const venues = (await fetchVenuesByTournamentId(tid)) as VenueRow[];
 
   return (
     <table style={{ width: "100%", borderCollapse: "collapse" }}>

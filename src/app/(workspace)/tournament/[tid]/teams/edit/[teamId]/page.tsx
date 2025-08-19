@@ -10,11 +10,13 @@ export type TeamDTO = {
   manager: string;
 };
 
-export default async function Page({
-  params: { teamId },
-}: {
-  params: { tid: string; teamId: string };
+export default async function Page(props: {
+  params: Promise<{ tid: string; teamId: string }>;
 }) {
+  const params = await props.params;
+
+  const { teamId } = params;
+
   const t = await fetchTeamById(teamId);
   if (!t) return <div className="mt-12 text-center">Team not found.</div>;
 

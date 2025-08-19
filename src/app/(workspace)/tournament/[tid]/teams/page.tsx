@@ -19,7 +19,7 @@ export default async function Page(props: {
         <div />
         <NewButton href={`/tournament/${tid}/teams/new`}>New Teams</NewButton>
       </div>
-      <TeamsTable />
+      <TeamsTable tid={tid} />
     </main>
   );
 }
