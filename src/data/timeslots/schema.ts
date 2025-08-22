@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { model, models, Schema } from "mongoose";
 import { zObjectId } from "@/data/_helpers";
+import { softDeletePlugin } from "@/data/softDelete";
 
 /* ---------- helpers ---------- */
 const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -75,6 +76,13 @@ mongooseSchema.pre("validate", function (next) {
   }
   next();
 });
+
+mongooseSchema.index(
+  { venue_id: 1, day_of_week: 1, start_time: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false } }
+);
+
+mongooseSchema.plugin(softDeletePlugin);
 
 export const TimeslotModel =
   models.Timeslot || model("Timeslot", mongooseSchema);

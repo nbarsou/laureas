@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { model, models, Schema } from "mongoose";
 import { zObjectId } from "@/data/_helpers";
+import { softDeletePlugin } from "@/data/softDelete";
 
 export const PlayerSchema = z.object({
   _id: zObjectId,
@@ -29,7 +30,6 @@ const mongooseSchema = new Schema(
       max: [99, "number must be <= 99"],
       validate: {
         validator: Number.isInteger,
-        message: "number must be an integer",
       },
     },
   },
@@ -37,5 +37,11 @@ const mongooseSchema = new Schema(
     timestamps: true, // adds createdAt & updatedAt
   }
 );
+
+mongooseSchema.index(
+  { teamId: 1, number: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false } }
+);
+mongooseSchema.plugin(softDeletePlugin);
 
 export const PlayerModel = models.Player || model("Player", mongooseSchema);
