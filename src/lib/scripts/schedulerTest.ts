@@ -8,7 +8,7 @@ import mongoose, { Types } from "mongoose";
 import { addDays, startOfDay } from "date-fns";
 
 // Adjust these imports to your project structure:
-import { getConn } from "@/data/db";
+import { getConn } from "@/lib/db";
 import { TournamentModel } from "@/data/tournaments/schema";
 import { TeamModel } from "@/data/teams/schema";
 import { MatchModel } from "@/data/matches/schema";
@@ -95,7 +95,7 @@ async function seedTournament(double: boolean): Promise<SeedTournamentResult> {
   // 1) Tournament window: next Monday → +6 weeks
   const now = new Date();
   const startDate = nextDow(now, 1); // 1 = Monday
-  const endDate = addDays(startDate, 7 * 6); // 6 weeks
+  const endDate = addDays(startDate, 7 * 10); // 10 weeks
 
   // Owner is required by schema; a random ObjectId works if you don’t enforce FK.
   const ownerId = new Types.ObjectId();
@@ -168,6 +168,18 @@ async function seedTournament(double: boolean): Promise<SeedTournamentResult> {
       day_of_week: 1,
       start_time: "17:00",
       end_time: "18:00",
+    }, // Mon
+    {
+      venue_id: vn._id,
+      day_of_week: 1,
+      start_time: "18:00",
+      end_time: "19:00",
+    }, // Mon
+    {
+      venue_id: vn._id,
+      day_of_week: 1,
+      start_time: "20:00",
+      end_time: "21:00",
     }, // Mon
     {
       venue_id: vn._id,
@@ -291,24 +303,42 @@ async function run() {
   // (re)generate pending matches if none
   const pending = await MatchModel.countDocuments({
     tournamentId,
-    date: { $exists: false },
+    status: "pending",
+    $or: [{ date: { $exists: false } }, { date: null }],
   });
+  if (pending < 0) throw new Error("Negative pending matches count.");
+  console.log(`Pending matches: ${pending}`);
   if (pending === 0) {
     const pairs = generateRoundRobin(
       teams.map((t) => new Types.ObjectId(t._id)),
       double
     );
-    await MatchModel.insertMany(
+    await MatchModel.bulkWrite(
       pairs.map((p) => ({
-        tournamentId,
-        round: p.round,
-        leg: p.leg,
-        homeTeamId: p.home,
-        awayTeamId: p.away,
-        status: "pending",
+        updateOne: {
+          filter: {
+            tournamentId,
+            round: p.round,
+            leg: p.leg,
+            homeTeamId: p.home,
+            awayTeamId: p.away,
+          },
+          update: {
+            $setOnInsert: {
+              tournamentId,
+              round: p.round,
+              leg: p.leg,
+              homeTeamId: p.home,
+              awayTeamId: p.away,
+              status: "pending",
+              // NOTE: do NOT set venueId/date/start_time when pending
+            },
+          },
+          upsert: true,
+        },
       }))
     );
-    console.log(`Generated ${pairs.length} matches`);
+    console.log(`Ensured ${pairs.length} matches (idempotent upserts).`);
   } else {
     console.log(`Found ${pending} pending matches to schedule`);
   }

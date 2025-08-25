@@ -3,36 +3,25 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { VenueSchema, VenueModel, type Venue } from "@/data/venues/schema";
-import { getConn } from "@/data/db";
+import {
+  VenueCreate,
+  VenueModel,
+  VenueUpdate,
+  type Venue,
+} from "@/data/venues/schema";
+import { getConn } from "@/lib/db";
 import { logger } from "@/lib/logging";
-import { zObjectId } from "@/data/_helpers";
-
-/** ---------- Types ---------- */
-const WriteVenue = VenueSchema.omit({ _id: true });
-
-export type State = {
-  errors?: {
-    tournamentId?: string[];
-    name?: string[];
-    address?: string[];
-    surface_type?: string[];
-  };
-  message?: string | null;
-};
-
-export type ActionResult =
-  | { ok: true }
-  | { ok: false; message: string; errors?: State["errors"] };
+import { ActionResult, zObjectId } from "@/data/_helpers";
 
 export type VenueLean = Omit<Venue, "_id"> & { _id: string };
 
 /** ---------- CREATE ---------- */
 export async function createVenue(
-  prev: ActionResult,
+  tid: string,
+  _prev: unknown,
   form: FormData
 ): Promise<ActionResult> {
-  const parsed = WriteVenue.safeParse({
+  const parsed = VenueCreate.safeParse({
     tournamentId: form.get("tournamentId"),
     name: form.get("name"),
     address: form.get("address"),
@@ -55,8 +44,8 @@ export async function createVenue(
     return { ok: false, message: "Database Error: Failed to create venue." };
   }
 
-  revalidatePath(`/tournament/${parsed.data.tournamentId}/venues`);
-  redirect(`/tournament/${parsed.data.tournamentId}/venues`);
+  revalidatePath(`/tournament/${tid}/venues`);
+  redirect(`/tournament/${tid}/venues`);
 }
 
 /** ---------- READ (list) ---------- */
@@ -72,7 +61,7 @@ export async function fetchVenuesByTournamentId(
 
   const tid = zObjectId.parse(tournamentId);
 
-  return await VenueModel.find({ tournamenId: tid })
+  return await VenueModel.find({ tournamentId })
     .sort({ name: 1 })
     .lean<Venue[]>();
 }
@@ -92,7 +81,7 @@ export async function updateVenue(
   const idCheck = zObjectId.safeParse(id);
   if (!idCheck.success) return { ok: false, message: "Invalid id." };
 
-  const parsed = WriteVenue.safeParse({
+  const parsed = VenueUpdate.safeParse({
     tournamentId: formData.get("tournamentId"),
     name: formData.get("name"),
     address: formData.get("address"),

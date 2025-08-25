@@ -1,18 +1,56 @@
 // data/teams/schema.ts
-import { z } from "zod";
+import { string, z } from "zod";
 import { InferSchemaType, Model, model, models, Schema, Types } from "mongoose";
 import { softDeletePlugin } from "@/data/softDelete";
 import { zObjectId } from "@/data/_helpers";
+import { group } from "console";
 
-export const TeamSchema = z.object({
-  _id: zObjectId,
-  tournamentId: zObjectId,
-  name: z.string(),
-  manager: z.email(),
-});
-export type Team = z.infer<typeof TeamSchema>;
-
+// Regex used both in Mongoose and (optionally) in Zod below
 const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+export const TeamCreate = z.object({
+  tournamentId: zObjectId,
+  groupId: zObjectId.optional(), // not required in Mongoose schema
+  name: z.string().min(1, "Name is required"),
+  manager: z.string().email("Invalid email"),
+  // Availability is optional and flexible. Tighten later if needed.
+  availability: z
+    .object({
+      allowed: z
+        .record(
+          z.string(), // keys "0".."6"
+          z.array(
+            z.object({
+              start: z.string().regex(HHMM, "Use HH:MM"),
+              end: z.string().regex(HHMM, "Use HH:MM"),
+            })
+          )
+        )
+        .optional(),
+      preferredStarts: z
+        .array(z.string().regex(HHMM, "Use HH:MM"))
+        .default([])
+        .optional(),
+    })
+    .partial()
+    .optional(),
+});
+
+export const TeamUpdate = TeamCreate.partial().extend({
+  _id: zObjectId,
+});
+
+// What you return to the UI (ids as strings)
+export const TeamOut = z.object({
+  _id: z.string(),
+  tournamentId: z.string(),
+  groupId: z.string().optional(),
+  name: z.string(),
+  manager: z.string().email(),
+  // If you want to include availability in responses, add it here later.
+});
+
+export type Team = z.infer<typeof TeamOut>;
 
 const TimeWindow = new Schema(
   {

@@ -1,16 +1,35 @@
-// /tournament/page.tsx  (RSC)
-import TournamentsTable from "@/components/tournament/TournamentTable";
-import NewButton from "@/components/common/NewButton";
+// app/(workspace)/tournament/page.tsx  (RSC)
+import TitleRow from "@/components/layout/TitleRow";
+import TournamentCardGrid from "@/components/tournament/TournamentCardGrid";
+import { TournamentGridSkeleton } from "@/components/tournament/TournamentCard/Skeleton";
+import { listTournaments } from "@/data/tournaments/service";
+import { Suspense } from "react";
 
-export default function TournamentsPage() {
+async function TournamentsGridServer() {
+  const tournaments = await listTournaments();
   return (
-    <section>
-      <h1 className="text-xl font-bold">Tournaments</h1>
-      <div className="flex items-center justify-between">
-        <div />
-        <NewButton href={`/tournament/new`}>New Tournament</NewButton>
-      </div>
-      <TournamentsTable />
+    <TournamentCardGrid
+      tournaments={tournaments}
+      hrefFor={(t) => `/tournament/${t._id}`}
+      addHref="/tournament/new"
+      addLabel="New Tournament"
+    />
+  );
+}
+
+export default function Page() {
+  return (
+    <section className="p-10">
+      {/* Always visible */}
+      <TitleRow
+        title="Tournaments"
+        actionHref={`/tournament/new`}
+        actionLabel={"New Tournament"}
+      />
+
+      <Suspense fallback={<TournamentGridSkeleton count={8} />}>
+        <TournamentsGridServer />
+      </Suspense>
     </section>
   );
 }

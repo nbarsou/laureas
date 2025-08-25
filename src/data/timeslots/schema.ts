@@ -21,8 +21,7 @@ const toMinutes = (hhmm: string) => {
 };
 
 /* ---------- Zod schema ---------- */
-export const TimeslotSchema = z.object({
-  _id: zObjectId.optional(),
+export const TimeslotCreate = z.object({
   venue_id: zObjectId, // reference to Venue
   day_of_week: zDOW, // 0=Sun ... 6=Sat
   start_time: zHHMM,
@@ -31,8 +30,21 @@ export const TimeslotSchema = z.object({
   is_active: z.boolean().default(true),
   label: z.string().max(80).optional(), // e.g., "Prime Slot", "Youth"
 });
+export const TimeslotUpdate = TimeslotCreate.partial().extend({
+  _id: zObjectId,
+});
+export const TimeslotOutput = TimeslotCreate.extend({
+  _id: z.string(),
+  venue_id: z.string(), // reference to Venue
+  day_of_week: zDOW, // 0=Sun ... 6=Sat
+  start_time: zHHMM,
+  end_time: zHHMM,
+  timezone: z.string().min(1).default("America/Mexico_City"),
+  is_active: z.boolean().default(true),
+  label: z.string().max(80).optional(), // e.g., "Prime Slot", "Youth"
+});
 
-export type Timeslot = z.infer<typeof TimeslotSchema>;
+export type Timeslot = z.infer<typeof TimeslotOutput>;
 
 /* ---------- Mongoose schema ---------- */
 const mongooseSchema = new Schema(

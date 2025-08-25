@@ -4,14 +4,26 @@ import { model, models, Schema } from "mongoose";
 import { zObjectId } from "@/data/_helpers";
 import { softDeletePlugin } from "@/data/softDelete";
 
-export const PlayerSchema = z.object({
-  _id: zObjectId,
+export const PlayerCreate = z.object({
   teamId: zObjectId,
   firstName: z.string(),
   lastName: z.string(),
   number: z.coerce.number().int().positive().max(99),
 });
-export type Player = z.infer<typeof PlayerSchema>;
+
+export const PlayerUpdate = PlayerCreate.partial().extend({
+  _id: zObjectId,
+});
+
+export const PlayerOut = z.object({
+  _id: z.string(),
+  teamId: zObjectId,
+  firstName: z.string(),
+  lastName: z.string(),
+  number: z.number().int().min(1).max(99),
+});
+
+export type Player = z.infer<typeof PlayerOut>;
 
 const mongooseSchema = new Schema(
   {

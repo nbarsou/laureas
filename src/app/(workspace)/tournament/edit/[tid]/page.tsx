@@ -1,5 +1,5 @@
 // app/tournaments/edit/[id]/page.tsx
-import { fetchTournamentById } from "@/data/tournaments/service";
+import { getTournament } from "@/data/tournaments/service";
 import { EditTournamentForm } from "@/components/tournament/EditTournamentForm";
 
 type TournamentDTO = {
@@ -13,7 +13,7 @@ export default async function Page(props: {
   params: Promise<{ tid: string }>;
 }) {
   const params = await props.params;
-  const t = await fetchTournamentById(params.tid);
+  const t = await getTournament(params.tid);
   if (!t) {
     return <div className="mt-12 text-center">Tournament not found.</div>;
   }

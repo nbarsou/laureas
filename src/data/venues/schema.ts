@@ -3,20 +3,31 @@ import { z } from "zod";
 import { InferSchemaType, Model, model, models, Schema, Types } from "mongoose";
 import { softDeletePlugin } from "@/data/softDelete";
 import { zObjectId } from "@/data/_helpers";
+import { required } from "zod/mini";
+import { GroupOut } from "../groups/schema";
 
 /* ---------- Enums / helpers ---------- */
 export const SurfaceType = z.enum(["grass", "turf", "indoor", "other"]);
 
 /* ---------- Zod schema ---------- */
-export const VenueSchema = z.object({
-  _id: zObjectId,
+export const VenueCreate = z.object({
   tournamentId: zObjectId,
   name: z.string().min(1, "name is required").max(120),
   address: z.string().min(1, "address is required").max(240),
   surface_type: SurfaceType.default("other"),
 });
+export const VenueUpdate = VenueCreate.partial().extend({
+  _id: zObjectId,
+});
+export const VenueOut = z.object({
+  _id: z.string(),
+  tournamentId: z.string(),
+  name: z.string().min(1).max(120),
+  address: z.string().min(1).max(240),
+  surface_type: SurfaceType,
+});
 
-export type Venue = z.infer<typeof VenueSchema>;
+export type Venue = z.infer<typeof VenueOut>;
 
 /* ---------- Mongoose schema ---------- */
 const mongooseSchema = new Schema(
@@ -25,7 +36,7 @@ const mongooseSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Tournament",
       index: true,
-      require: true,
+      required: true,
     },
     name: {
       type: String,

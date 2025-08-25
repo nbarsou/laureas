@@ -4,41 +4,22 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
-  TimeslotSchema,
+  TimeslotCreate,
   TimeslotModel,
+  TimeslotUpdate,
   type Timeslot,
 } from "@/data/timeslots/schema";
-import { getConn } from "@/data/db";
+import { getConn } from "@/lib/db";
 import { logger } from "@/lib/logging";
 import { ActionResult, zObjectId } from "@/data/_helpers";
 
-/** ---------- Types ---------- */
-const WriteTimeslot = TimeslotSchema.omit({ _id: true });
-
-export type TimeslotState = {
-  errors?: {
-    venue_id?: string[];
-    day_of_week?: string[];
-    start_time?: string[];
-    end_time?: string[];
-    timezone?: string[];
-    is_active?: string[];
-    label?: string[];
-  };
-  message?: string | null;
-};
-
-export type TimeslotLean = Omit<Timeslot, "_id" | "venue_id"> & {
-  _id: string;
-  venue_id: string;
-};
-
 /** ---------- CREATE ---------- */
 export async function createTimeslot(
-  prev: TimeslotState,
+  tid: string,
+  _prev: unknown,
   form: FormData
 ): Promise<ActionResult> {
-  const parsed = WriteTimeslot.safeParse({
+  const parsed = TimeslotCreate.safeParse({
     venue_id: form.get("venue_id"),
     day_of_week: Number(form.get("day_of_week")),
     start_time: form.get("start_time"),
@@ -64,10 +45,8 @@ export async function createTimeslot(
     return { ok: false, message: "Database Error: Failed to create timeslot." };
   }
 
-  revalidatePath(
-    `/tournament/${form.get("tid")}/venues/${parsed.data.venue_id}`
-  );
-  redirect(`/tournament/${form.get("tid")}/venues/${parsed.data.venue_id}`);
+  revalidatePath(`/tournament/${tid}/venues/${parsed.data.venue_id}`);
+  redirect(`/tournament/${tid}/venues/${parsed.data.venue_id}`);
 }
 
 /** ---------- READ (list all active, optional by venue) ---------- */
@@ -101,13 +80,13 @@ export async function fetchTimeslotById(id: string): Promise<Timeslot | null> {
 /** ---------- UPDATE ---------- */
 export async function updateTimeslot(
   id: string,
-  prev: TimeslotState,
+  _prev: unknown,
   form: FormData
 ): Promise<ActionResult> {
   const idCheck = zObjectId.safeParse(id);
   if (!idCheck.success) return { ok: false, message: "Invalid id." };
 
-  const parsed = WriteTimeslot.safeParse({
+  const parsed = TimeslotUpdate.safeParse({
     venue_id: form.get("venue_id"),
     day_of_week: Number(form.get("day_of_week")),
     start_time: form.get("start_time"),
@@ -136,6 +115,8 @@ export async function updateTimeslot(
     return { ok: false, message: "Database Error: Failed to update timeslot." };
   }
 
+  // TODO : if modal then just revalidate the path.
+  // TODO: Adjust later the routes
   revalidatePath("/tournament/timeslots");
   const noRedirect = String(form.get("no_redirect") ?? "false") === "true";
   if (noRedirect) {
@@ -170,13 +151,18 @@ export async function toggleTimeslotActive(
 }
 
 /** ---------- DELETE ---------- */
-export async function deleteTimeslot(id: string): Promise<ActionResult> {
-  const idCheck = zObjectId.safeParse(id);
-  if (!idCheck.success) return { ok: false, message: "Invalid id." };
-
+export async function deleteTimeslot(
+  id: string,
+  by?: string,
+  reason?: string
+): Promise<ActionResult> {
   try {
     await getConn();
-    await TimeslotModel.findByIdAndDelete(idCheck.data);
+    const timeslot = await TimeslotModel.findById(id);
+    if (!timeslot) {
+      return { ok: false, message: "Timeslot not found." };
+    }
+    await (timeslot as any).softDelete?.(by, reason); // instance method from plugin
   } catch (e: any) {
     logger.error(e);
     return { ok: false, message: "Database Error: Failed to delete timeslot." };

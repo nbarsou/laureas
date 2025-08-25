@@ -1,3 +1,4 @@
+import ComingSoon from "@/components/common/CommingSoon";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -11,7 +12,7 @@ export default async function Page(context: {
 
   return (
     <main>
-      <p>Home for {tid} tournament</p>
+      <ComingSoon />
     </main>
   );
 }

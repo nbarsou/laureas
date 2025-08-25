@@ -1,9 +1,13 @@
-import { Inter } from "next/font/google";
+import { Poppins } from "next/font/google";
 import type { Metadata } from "next";
 import "./globals.css";
+
 import { Footer } from "@/components/Footer";
 
-export const inter = Inter({ subsets: ["latin"] });
+export const poppins = Poppins({
+  subsets: ["latin"],
+  weight: "600",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -21,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.className} antialiased min-h-screen flex flex-col`}
+        className={`${poppins.className} antialiased min-h-screen flex flex-col`}
       >
         <main className="flex-1 flex flex-col">{children}</main>
 

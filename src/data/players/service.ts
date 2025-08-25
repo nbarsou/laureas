@@ -3,33 +3,24 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { PlayerSchema, PlayerModel, Player } from "@/data/players/schema";
-import { getConn } from "@/data/db";
+import {
+  PlayerCreate,
+  PlayerModel,
+  Player,
+  PlayerUpdate,
+} from "@/data/players/schema";
+import { getConn } from "@/lib/db";
 import { logger } from "@/lib/logging";
 import { zObjectId } from "@/data/_helpers";
 import { ActionResult } from "@/data/_helpers";
 
-/* Write-safe schema */
-const WritePlayer = PlayerSchema.omit({ _id: true });
-
-/* Action-state shape */
-export type State = {
-  errors?: {
-    teamId?: string[];
-    firstName?: string[];
-    lastName?: string[];
-    number?: string[];
-  };
-  message?: string | null;
-};
-
 /* ════════════════  C R E A T E  ════════════════ */
 
 export async function createPlayer(
-  prevState: State,
+  _prevState: unknown,
   formData: FormData
 ): Promise<ActionResult> {
-  const validatedFields = WritePlayer.safeParse({
+  const validatedFields = PlayerCreate.safeParse({
     teamId: formData.get("teamId"),
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
@@ -52,7 +43,7 @@ export async function createPlayer(
     return { ok: false, message: "Database Error: Failed to Create Player." };
   }
 
-  revalidatePath("/tournament/players");
+  revalidatePath("/tournament/players"); // TODO: adjust later
   redirect("/tournament/players");
 }
 
@@ -84,12 +75,12 @@ export async function fetchPlayersByTeam(teamId: string): Promise<Player[]> {
 /* ════════════════  U P D A T E  ════════════════ */
 
 export async function updatePlayer(
-  prevState: State,
+  _prevState: unknown,
   formData: FormData
 ): Promise<ActionResult> {
   const idCheck = zObjectId.safeParse(formData.get("_id"));
 
-  const validatedFields = WritePlayer.safeParse({
+  const validatedFields = PlayerUpdate.safeParse({
     teamId: formData.get("teamId"),
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
@@ -115,31 +106,28 @@ export async function updatePlayer(
     return { ok: false, message: "Database Error: Failed to Update Player." };
   }
 
-  revalidatePath("/tournament/players");
+  revalidatePath("/tournament/players"); // TODO: adjust later
   redirect("/tournament/players");
 }
 
 /* ════════════════  D E L E T E  ════════════════ */
-export async function deletePlayer(id: string): Promise<ActionResult> {
-  const idCheck = zObjectId.safeParse(id);
-
-  if (!idCheck.success) {
-    return {
-      ok: false,
-      errors: { id: ["Invalid id"] },
-      message: "Invalid id.",
-    };
-  }
-
+export async function deletePlayer(
+  id: string,
+  by?: string,
+  reason?: string
+): Promise<ActionResult> {
   try {
     await getConn();
-    await PlayerModel.findByIdAndDelete(idCheck.data);
+    const player = await PlayerModel.findById(id);
+    if (!player) {
+      return { ok: false, message: "Player not found." };
+    }
+    await (player as any).softDelete(by, reason); // static method from plugin
   } catch (error: any) {
     logger.error(error);
-    return { ok: false, message: "Database Error: Failed to Delete Player" };
+    return { ok: false, message: "Database Error: Failed to Delete Player." };
   }
 
-  revalidatePath("/tournament/players");
-  /* stay on same page after deletion */
+  revalidatePath("/tournament/players"); // TODO: adjust later
   return { ok: true };
 }

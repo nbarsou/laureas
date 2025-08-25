@@ -1,16 +1,24 @@
-// data/_helpers.ts
-import { Types } from "mongoose";
+// src/data/_helpers.ts
 import { z } from "zod";
+import { Types } from "mongoose";
 
+/** Zod bits you’ll reuse */
 export const zObjectId = z
   .string()
-  .refine(Types.ObjectId.isValid, { message: "Invalid ObjectId" })
-  .transform((v) => new Types.ObjectId(v));
+  .refine(Types.ObjectId.isValid, "Invalid id");
+export const zDate = z.coerce.date("Must be a date");
 
-export type FieldErrors = Record<string, string[]>;
+/** Normalize _id to string for lean() results */
+export const strId = <T extends { _id: unknown }>(d: T) =>
+  ({ ...d, _id: String((d as any)._id) } as Omit<T, "_id"> & { _id: string });
 
-export type ActionResult<E = FieldErrors> = {
+export const strIds = <T extends { _id: unknown }>(ds: T[]) => ds.map(strId);
+
+/** (Optional) tiny action result type to keep forms simple */
+export type ActionResult = {
   ok: boolean;
   message?: string;
-  errors?: E;
+  errors?: Record<string, string[] | undefined>;
+  /** sticky values to re-fill the form after a failed submit */
+  values?: Record<string, any>;
 };

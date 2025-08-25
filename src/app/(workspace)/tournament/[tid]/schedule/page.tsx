@@ -1,3 +1,4 @@
+import MatchesByDayList from "@/components/matches/MatchesByDayList";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -12,7 +13,10 @@ export default async function Page(props: {
 
   return (
     <main>
-      <p>Schedule for tournament {tid} here</p>
+      <div className="p-6">
+        <h1 className="text-2xl font-semibold mb-4">Matches</h1>
+        <MatchesByDayList tournamentId={tid} />
+      </div>
     </main>
   );
 }

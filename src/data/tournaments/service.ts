@@ -1,148 +1,189 @@
-// data/tournaments/service.ts
-/*==============================================================================
-  CRUD - Tournament service – quick-reference
-==============================================================================
-
-Operation          How to call
------------------  ------------------------------------------------------------
-READ ALL           // Server Component
-                   const tournaments = await fetchAllTournaments();
-
-READ ONE           // Server Component
-                   const tournament = await fetchTournamentById(params.id);
-
-CREATE / UPDATE /  // Client Component
-DELETE             const [state, action] =
-                       useActionState(createTournament, initState);
-                   // …and wire the form:
-                   // <form action={action}> … </form>
-
-Notes
------
-• fetch* helpers run only on the server (no revalidate/redirect).  
-• create / update / delete all call revalidatePath("/dashboard/tournaments").  
-• A single State type covers field-level errors + top-level messages.
-
-==============================================================================*/
-
+// src/data/tournaments/service.ts
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import {
-  TournamentSchema,
-  TournamentModel,
-  Tournament,
-} from "@/data/tournaments/schema";
-import { getConn } from "@/data/db";
+import { getConn } from "@/lib/db";
 import { logger } from "@/lib/logging";
-import { zObjectId } from "@/data/_helpers";
-import { ActionResult } from "@/data/_helpers";
 
-/* Write-safe schema */
-const WriteTournament = TournamentSchema.omit({
-  _id: true,
-});
+import { TournamentModel } from "./schema";
+import {
+  TournamentCreate,
+  TournamentUpdate,
+  type Tournament,
+  SCHEDULER_DEFAULTS,
+} from "./dto";
+import { toTournamentOut, toTournamentOutMany } from "./serializers";
 
-/* Action-state shape */
-export type State = {
-  errors?: { name?: string[]; startDate?: string[]; endDate?: string[] };
-  message?: string | null;
+export type ActionResult = {
+  ok: boolean;
+  message?: string;
+  errors?: Record<string, string[] | undefined>;
+  values?: Record<string, any>;
 };
 
-/* ════════════════  C R E A T E  ════════════════ */
+/* helpers to read basic types from FormData (presence booleans) */
+const fd = {
+  str: (f: FormData, k: string, d = "") => String(f.get(k) ?? d),
+  bool: (f: FormData, k: string) => !!f.get(k),
+  num: (f: FormData, k: string, d: number) => {
+    const v = f.get(k);
+    if (v == null || v === "") return d;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : d;
+  },
+};
 
+/**
+ * Dump FormData for debugging
+ */
+export async function dumpFormData(form: FormData) {
+  const out: Record<string, any> = {};
+  for (const [k, v] of form.entries()) {
+    out[k] = typeof v === "string" ? v : `(File:${(v as File).name})`;
+  }
+  return out;
+}
+
+/**
+ * Dump date status for debugging
+ */
+export async function dumpDateStatus(v: unknown) {
+  const d = new Date(String(v));
+  return { raw: v, iso: isNaN(d.getTime()) ? "Invalid Date" : d.toISOString() };
+}
+
+/* CREATE */
 export async function createTournament(
-  prevState: State,
-  formData: FormData
+  ownerId: string,
+  _prev: unknown,
+  form: FormData
 ): Promise<ActionResult> {
-  const validatedFields = WriteTournament.safeParse({
-    name: formData.get("name"),
-    startDate: formData.get("startDate"),
-    endDate: formData.get("endDate"),
+  logger.debug("tournaments.create.formdata", dumpFormData(form));
+  logger.debug("tournaments.create.ownerId", { ownerId });
+
+  const payload = {
+    name: fd.str(form, "name"),
+    startDate: fd.str(form, "startDate"),
+    endDate: fd.str(form, "endDate"),
+    ownerId,
+    settings: {
+      schedulerMode: fd.str(
+        form,
+        "settings.schedulerMode",
+        SCHEDULER_DEFAULTS.schedulerMode
+      ),
+      doubleRoundRobin: fd.bool(form, "settings.doubleRoundRobin"),
+      minGapMinutesSameDay: fd.num(
+        form,
+        "settings.minGapMinutesSameDay",
+        SCHEDULER_DEFAULTS.minGapMinutesSameDay
+      ),
+      maxBacktracks: fd.num(
+        form,
+        "settings.maxBacktracks",
+        SCHEDULER_DEFAULTS.maxBacktracks
+      ),
+      balancePreferredStarts: fd.bool(form, "settings.balancePreferredStarts"),
+      allowSameDayDoubleHeader: fd.bool(
+        form,
+        "settings.allowSameDayDoubleHeader"
+      ),
+    },
+  };
+
+  logger.debug("tournaments.create.date_sanity", {
+    start: dumpDateStatus(payload.startDate),
+    end: dumpDateStatus(payload.endDate),
   });
 
-  if (!validatedFields.success) {
+  const parsed = TournamentCreate.safeParse(payload);
+  if (!parsed.success) {
+    logger.debug("tournaments.create.validation_failed", {
+      fieldErrors: parsed.error.flatten().fieldErrors, // { name?: string[], "settings.minGap..."?: string[] }
+      formErrors: parsed.error.flatten().formErrors,
+      issues: parsed.error.issues.map((i) => ({
+        path: i.path.join("."),
+        message: i.message,
+      })),
+    });
+
     return {
       ok: false,
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: "Missing Fields. Failed to Create Tournament.",
+      message: "Validation failed",
+      errors: parsed.error.flatten().fieldErrors, // keys like "settings.minGapMinutesSameDay"
+      values: payload, // sticky
     };
   }
 
+  // 4) If you want to see the fully typed values after coercion
+  logger.debug("tournaments.create.validated", parsed.data);
+
   try {
     await getConn();
-    await TournamentModel.create(validatedFields.data);
-  } catch (error: any) {
-    logger.error(error);
+    const doc = await TournamentModel.create(parsed.data);
+    logger.info("tournament.created", { id: String(doc._id) });
+  } catch (err: any) {
+    logger.error(err);
     return {
       ok: false,
       message: "Database Error: Failed to Create Tournament.",
+      values: payload,
     };
   }
 
-  revalidatePath("/tournament");
-  redirect("/tournament");
+  revalidatePath(`/tournament/${ownerId}`);
+  redirect(`/tournament/${ownerId}`);
 }
 
-/* ════════════════  R E A D  ════════════════ */
-
-export async function fetchAllTournaments(): Promise<Tournament[]> {
+/* LIST — always serialize */
+export async function listTournaments(): Promise<Tournament[]> {
   await getConn();
-  /* lean() returns plain objects → smaller payload for RSC */
-  return await TournamentModel.find()
+  const rows = await TournamentModel.find(
+    {},
+    { _id: 1, name: 1, startDate: 1, endDate: 1, settings: 1 }
+  )
     .sort({ startDate: 1 })
-    .lean<Tournament[]>();
+    .lean();
+  return toTournamentOutMany(rows as any);
 }
 
-export async function fetchTournamentById(
-  id: string
-): Promise<Tournament | null> {
-  /* throws if not a valid ObjectId */
-  if (!id) throw new Error("Missing route param id");
-  zObjectId.parse(id);
+/* GET ONE — serialize or null */
+export async function getTournament(id: string): Promise<Tournament | null> {
   await getConn();
-
-  return TournamentModel.findById(id).lean<Tournament>().exec();
+  const row = await TournamentModel.findById(id).lean();
+  return row ? toTournamentOut(row as any) : null;
 }
 
-/* ════════════════  U P D A T E  ════════════════ */
-
+/* UPDATE — partial (supports nested settings.*) */
 export async function updateTournament(
-  prevState: State,
-  formData: FormData
+  _prev: unknown,
+  form: FormData
 ): Promise<ActionResult> {
-  // ✅ convert FormData -> plain object of strings
-  const raw = Object.fromEntries(formData); // { _id, name, startDate, endDate }
-
-  const validatedFields = TournamentSchema.safeParse(raw);
-
-  if (!validatedFields.success) {
-    const { fieldErrors } = validatedFields.error.flatten();
+  const payload = Object.fromEntries(form) as any; // can include settings.schedulerMode, etc.
+  const parsed = TournamentUpdate.safeParse(payload);
+  if (!parsed.success) {
     return {
       ok: false,
-      message: "Missing Fields. Failed to Update Tournament.",
-      errors: fieldErrors,
+      message: "Validation failed",
+      errors: parsed.error.flatten().fieldErrors,
+      values: payload,
     };
   }
 
-  const { _id, name, startDate, endDate } = validatedFields.data;
-
+  const { _id, ...update } = parsed.data;
   try {
     await getConn();
-
-    // ✅ correct signature: (id, updateDoc, options)
-    await TournamentModel.findByIdAndUpdate(
-      _id,
-      { name, startDate, endDate },
-      { runValidators: true, new: false }
-    );
-  } catch (error: any) {
-    logger.error(error);
+    const res = await TournamentModel.findByIdAndUpdate(_id, update, {
+      runValidators: true,
+    });
+    if (!res) return { ok: false, message: "Tournament not found." };
+  } catch (err: any) {
+    logger.error(err);
     return {
       ok: false,
       message: "Database Error: Failed to Update Tournament.",
-      errors: {},
+      values: payload,
     };
   }
 
@@ -150,29 +191,43 @@ export async function updateTournament(
   redirect("/tournament");
 }
 
-/* ════════════════  D E L E T E  ════════════════ */
-export async function deleteTournament(id: string): Promise<ActionResult> {
-  const idCheck = zObjectId.safeParse(id);
-
-  if (!idCheck.success) {
-    return {
-      ok: false,
-      message: "Invalid id.",
-    };
-  }
-
+/* DELETE (soft) — unchanged */
+export async function deleteTournament(
+  id: string,
+  by?: string,
+  reason?: string
+): Promise<ActionResult> {
   try {
     await getConn();
-    await TournamentModel.findByIdAndDelete(idCheck.data);
-  } catch (error: any) {
-    logger.error(error);
+    const doc = await TournamentModel.findById(id); // visible (not deleted yet)
+    if (!doc) return { ok: false, message: "Tournament not found." };
+    await (doc as any).softDelete?.(by, reason); // instance method from plugin
+  } catch (err: any) {
+    logger.error(err);
     return {
       ok: false,
-      message: "Database Error: Failed to Delete Tournament",
+      message: "Database Error: Failed to Delete Tournament.",
     };
   }
-
   revalidatePath("/tournament");
-  /* stay on same page after deletion */
+  return { ok: true };
+}
+
+/* RESTORE — include the marker so the plugin lets us see the doc */
+export async function restoreTournament(id: string): Promise<ActionResult> {
+  try {
+    await getConn();
+    // findOne so we can pass the synthetic marker the plugin looks for
+    const doc = await TournamentModel.findOne({ _id: id, withDeleted: true });
+    if (!doc) return { ok: false, message: "Tournament not found." };
+    await (doc as any).restore?.();
+  } catch (err: any) {
+    logger.error(err);
+    return {
+      ok: false,
+      message: "Database Error: Failed to Restore Tournament.",
+    };
+  }
+  revalidatePath("/tournament");
   return { ok: true };
 }

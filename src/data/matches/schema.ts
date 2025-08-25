@@ -104,12 +104,20 @@ const mongooseSchema = new Schema(
 
 mongooseSchema.index(
   { tournamentId: 1, venueId: 1, date: 1, start_time: 1 },
-  { unique: true, sparse: true }
+  {
+    unique: true,
+    partialFilterExpression: {
+      status: "scheduled",
+      venueId: { $exists: true, $ne: null },
+      date: { $exists: true },
+      start_time: { $exists: true, $ne: null },
+    },
+  }
 );
-mongooseSchema.index({ tournamentId: 1, round: 1, leg: 1 });
+
 mongooseSchema.index(
   { tournamentId: 1, round: 1, leg: 1, homeTeamId: 1, awayTeamId: 1 },
-  { unique: true, sparse: true }
+  { unique: true, partialFilterExpression: { isDeleted: false } }
 );
 
 mongooseSchema.plugin(softDeletePlugin);

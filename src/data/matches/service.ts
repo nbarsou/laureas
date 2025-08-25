@@ -4,10 +4,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { MatchSchema, MatchModel, Match } from "@/data/matches/schema";
-import { getConn } from "@/data/db";
+import { getConn } from "@/lib/db";
 import { logger } from "@/lib/logging";
 import { zObjectId } from "@/data/_helpers";
 import { ActionResult } from "@/data/_helpers";
+import { Types } from "mongoose";
 
 /* Write-safe schema */
 const WriteMatch = MatchSchema.omit({ _id: true });
@@ -76,6 +77,156 @@ export async function fetchMatchById(id: string): Promise<Match | null> {
   zObjectId.parse(id);
   await getConn();
   return MatchModel.findById(id).lean<Match>();
+}
+
+export type HydratedMatch = {
+  _id: string;
+  tournamentId: string;
+  group?: { _id: string; name: string } | null;
+  round: number;
+  leg: number;
+  date?: string | null; // ISO
+  start_time?: string | null; // HH:MM
+  end_time?: string | null; // HH:MM
+  status: "pending" | "scheduled" | "completed" | "canceled";
+  conflict_reason?: string | null;
+  venue?: { _id: string; name: string } | null;
+  homeTeam: { _id: string; name: string };
+  awayTeam: { _id: string; name: string };
+  score?: { home?: number | null; away?: number | null };
+  updatedAt?: string;
+  createdAt?: string;
+};
+
+export async function fetchMatchesByTournamentIdHydrated(
+  tournamentId: string
+): Promise<HydratedMatch[]> {
+  const tid = new Types.ObjectId(tournamentId);
+
+  const rows = await MatchModel.aggregate([
+    {
+      $match: {
+        tournamentId: tid,
+        $or: [{ isDeleted: { $exists: false } }, { isDeleted: false }],
+      },
+    },
+
+    // home team (include groupId!)
+    {
+      $lookup: {
+        from: "teams",
+        localField: "homeTeamId",
+        foreignField: "_id",
+        as: "homeTeam",
+        pipeline: [{ $project: { _id: 1, name: 1, groupId: 1 } }],
+      },
+    },
+    { $unwind: "$homeTeam" },
+
+    // away team (include groupId!)
+    {
+      $lookup: {
+        from: "teams",
+        localField: "awayTeamId",
+        foreignField: "_id",
+        as: "awayTeam",
+        pipeline: [{ $project: { _id: 1, name: 1, groupId: 1 } }],
+      },
+    },
+    { $unwind: "$awayTeam" },
+
+    // Compute an effective groupId (prefer match.groupId, else homeTeam.groupId, else awayTeam.groupId)
+    {
+      $addFields: {
+        _effectiveGroupId: {
+          $ifNull: [
+            "$groupId",
+            {
+              $ifNull: ["$homeTeam.groupId", "$awayTeam.groupId"],
+            },
+          ],
+        },
+      },
+    },
+
+    // group (optional) using the computed id
+    {
+      $lookup: {
+        from: "groups",
+        localField: "_effectiveGroupId",
+        foreignField: "_id",
+        as: "group",
+        pipeline: [{ $project: { _id: 1, name: 1 } }],
+      },
+    },
+    { $unwind: { path: "$group", preserveNullAndEmptyArrays: true } },
+
+    // venue (optional)
+    {
+      $lookup: {
+        from: "venues",
+        localField: "venueId",
+        foreignField: "_id",
+        as: "venue",
+        pipeline: [{ $project: { _id: 1, name: 1 } }],
+      },
+    },
+    { $unwind: { path: "$venue", preserveNullAndEmptyArrays: true } },
+
+    // shape output
+    {
+      $project: {
+        _id: { $toString: "$_id" },
+        tournamentId: { $toString: "$tournamentId" },
+        round: 1,
+        leg: 1,
+        date: 1,
+        start_time: 1,
+        end_time: 1,
+        status: 1,
+        conflict_reason: 1,
+        score: 1,
+        updatedAt: 1,
+        createdAt: 1,
+        homeTeam: {
+          _id: { $toString: "$homeTeam._id" },
+          name: "$homeTeam.name",
+        },
+        awayTeam: {
+          _id: { $toString: "$awayTeam._id" },
+          name: "$awayTeam.name",
+        },
+        group: {
+          $cond: [
+            { $ifNull: ["$group", false] },
+            { _id: { $toString: "$group._id" }, name: "$group.name" },
+            null,
+          ],
+        },
+        venue: {
+          $cond: [
+            { $ifNull: ["$venue", false] },
+            { _id: { $toString: "$venue._id" }, name: "$venue.name" },
+            null,
+          ],
+        },
+      },
+    },
+
+    // sensible default ordering
+    {
+      $sort: {
+        date: 1,
+        "venue.name": 1,
+        start_time: 1,
+        round: 1,
+        leg: 1,
+        "homeTeam.name": 1,
+      },
+    },
+  ]).exec();
+
+  return rows as HydratedMatch[];
 }
 
 /* ════════════════  U P D A T E  ════════════════ */

@@ -3,6 +3,7 @@ import { fetchVenues, fetchVenuesByTournamentId } from "@/data/venues/service";
 import { DeleteButton } from "@/components/venues/DeleteVenueButton";
 import ClickableRow from "@/components/common/ClickableRow";
 import { EditButton } from "@/components/common/EditButton";
+import { logger } from "@/lib/logging";
 
 type VenueRow = {
   _id: any;
@@ -13,7 +14,7 @@ type VenueRow = {
 
 export default async function VenuesTable({ tid }: { tid: string }) {
   const venues = (await fetchVenuesByTournamentId(tid)) as VenueRow[];
-
+  logger.debug(`Fetched ${venues.length} venues for tournament ${tid}`);
   return (
     <table style={{ width: "100%", borderCollapse: "collapse" }}>
       <thead>

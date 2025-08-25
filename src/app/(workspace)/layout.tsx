@@ -1,5 +1,5 @@
 // app/dashboard/layout.tsx
-import { Header } from "@/components/Header";
+import Header from "@/components/layout/Header";
 // import { auth } from '@/lib/auth';                     // wrapper around NextAuth getServerSession
 
 export default async function DashboardLayout({
@@ -14,7 +14,7 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen">
       <div className="flex-1 flex flex-col">
         <Header />
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>
   );

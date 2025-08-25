@@ -1,7 +1,7 @@
 // components/tournament/NewTournamentForm.tsx
 "use client";
 
-import { createTeam, type State } from "@/data/teams/service";
+import { createTeam} from "@/data/teams/service";
 import { useActionState } from "react";
 
 const initialState: State = { message: null, errors: {} };
