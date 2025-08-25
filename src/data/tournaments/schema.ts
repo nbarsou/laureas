@@ -13,6 +13,13 @@ const SchedulerSettingsMongoose = new Schema({
   maxBacktracks: { type: Number, default: 400 },
   balancePreferredStarts: { type: Boolean, default: true },
   allowSameDayDoubleHeader: { type: Boolean, default: true },
+  // ✅ Added fields
+  groupsEnabled: { type: Boolean, default: false },
+  groupsMode: {
+    type: String,
+    enum: ["manual", "auto"],
+    default: "manual",
+  },
 });
 
 /* Mongoose schema/model */

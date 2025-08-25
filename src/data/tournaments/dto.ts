@@ -10,6 +10,9 @@ export const SchedulerSettingsShared = z.object({
   maxBacktracks: z.number().int().nonnegative().default(400),
   balancePreferredStarts: z.boolean().default(true),
   allowSameDayDoubleHeader: z.boolean().default(true),
+
+  groupsEnabled: z.boolean().default(false),
+  groupsMode: z.enum(["manual", "auto"]).default("manual"),
 });
 export type SchedulerSettings = z.infer<typeof SchedulerSettingsShared>;
 export const SCHEDULER_DEFAULTS: SchedulerSettings =

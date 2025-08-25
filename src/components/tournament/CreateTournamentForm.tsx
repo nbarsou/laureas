@@ -56,8 +56,59 @@ export function CreateTournamentForm({ ownerId }: { ownerId: string }) {
       </section>
 
       {/* Settings (from the get-go) */}
-      <section className="space-y-6 rounded-lg border border-dashed border-gray-300 p-4">
-        <h2 className="text-sm font-semibold">Scheduler settings</h2>
+      <section className="space-y-6 rounded-xl border border-gray-200 bg-white/50 p-6 shadow-sm">
+        <div>
+          <h2 className="text-base font-semibold tracking-tight">
+            Scheduler settings
+          </h2>
+          <p className="mt-1 text-xs text-gray-500">
+            Configure how matches are generated and optionally use groups.
+          </p>
+        </div>
+
+        {/* NEW: Groups settings */}
+        {/** Keep a small bit of UI state so the mode select can be disabled when unchecked */}
+        {/** (server still receives the posted values normally) */}
+        {(() => {
+          const [groupsEnabledUI, setGroupsEnabledUI] = React.useState<boolean>(
+            v.settings?.groupsEnabled ?? false
+          );
+          return (
+            <div className="rounded-lg border border-gray-200 p-4">
+              <div className="mb-3">
+                <h3 className="text-sm font-medium">Groups</h3>
+                <p className="text-xs text-gray-500">
+                  Enable groups (pools) and choose how teams are assigned.
+                </p>
+              </div>
+              <FormRow>
+                <CheckboxField
+                  label="Enable groups"
+                  name="settings.groupsEnabled"
+                  defaultChecked={v.settings?.groupsEnabled ?? false}
+                  onChange={(e) =>
+                    setGroupsEnabledUI(
+                      (e as React.ChangeEvent<HTMLInputElement>).currentTarget
+                        .checked
+                    )
+                  }
+                  error={e["settings.groupsEnabled"]?.[0]}
+                />
+                <Field
+                  as="select"
+                  label="Groups mode"
+                  name="settings.groupsMode"
+                  defaultValue={v.settings?.groupsMode ?? "manual"}
+                  disabled={!groupsEnabledUI}
+                  error={e["settings.groupsMode"]?.[0]}
+                >
+                  <option value="manual">Manual</option>
+                  <option value="auto">Auto</option>
+                </Field>
+              </FormRow>
+            </div>
+          );
+        })()}
 
         <FormRow>
           <Field
@@ -79,44 +130,12 @@ export function CreateTournamentForm({ ownerId }: { ownerId: string }) {
           />
         </FormRow>
 
-        <FormRow>
-          <Field
-            label="Min gap (minutes) same day"
-            name="settings.minGapMinutesSameDay"
-            type="number"
-            defaultValue={v.settings?.minGapMinutesSameDay ?? 60}
-            error={e["settings.minGapMinutesSameDay"]?.[0]}
-          />
-          <Field
-            label="Max backtracks"
-            name="settings.maxBacktracks"
-            type="number"
-            defaultValue={v.settings?.maxBacktracks ?? 400}
-            error={e["settings.maxBacktracks"]?.[0]}
-          />
-        </FormRow>
-
-        <FormRow>
-          <CheckboxField
-            label="Balance preferred starts"
-            name="settings.balancePreferredStarts"
-            defaultChecked={v.settings?.balancePreferredStarts ?? true}
-            error={e["settings.balancePreferredStarts"]?.[0]}
-          />
-          <CheckboxField
-            label="Allow same-day double header"
-            name="settings.allowSameDayDoubleHeader"
-            defaultChecked={v.settings?.allowSameDayDoubleHeader ?? true}
-            error={e["settings.allowSameDayDoubleHeader"]?.[0]}
-          />
-        </FormRow>
+        {!state.ok && state.message && (
+          <p className="text-sm text-red-600">{state.message}</p>
+        )}
       </section>
 
-      {!state.ok && state.message && (
-        <p className="text-sm text-red-600">{state.message}</p>
-      )}
-
-      <button className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white">
+      <button className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-black/20 disabled:opacity-50">
         Create
       </button>
     </form>
