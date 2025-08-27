@@ -1,8 +1,10 @@
 // data/groups/schema.ts
 import { z } from "zod";
 import { InferSchemaType, Model, model, models, Schema, Types } from "mongoose";
-import { softDeletePlugin } from "@/data/softDelete";
+import { softDeletePlugin } from "@/data/_plugins/softDelete";
 import { zObjectId } from "@/data/_helpers";
+import { versionSemverPlugin } from "../_plugins/version";
+import { VERSIONS } from "../version";
 
 // --- Shared regex (HH:MM) ---
 const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -91,6 +93,7 @@ mongooseSchema.index(
 );
 
 mongooseSchema.plugin(softDeletePlugin);
+mongooseSchema.plugin(versionSemverPlugin, { defaultVersion: VERSIONS.group });
 
 // Strongly typed model exports
 export type GroupDb = InferSchemaType<typeof mongooseSchema> & {
@@ -101,4 +104,3 @@ export type GroupModelType = Model<GroupDb>;
 export const GroupModel =
   (models.Group as GroupModelType | undefined) ??
   model<GroupDb>("Group", mongooseSchema);
-

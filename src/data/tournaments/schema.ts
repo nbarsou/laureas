@@ -1,6 +1,8 @@
 // src/data/tournaments/schema.ts
 import { Schema, model, models, InferSchemaType, Model } from "mongoose";
-import { softDeletePlugin } from "@/data/softDelete";
+import { softDeletePlugin } from "@/data/_plugins/softDelete";
+import { versionSemverPlugin } from "../_plugins/version";
+import { VERSIONS } from "../version";
 
 const SchedulerSettingsMongoose = new Schema({
   schedulerMode: {
@@ -45,11 +47,12 @@ const MSchema = new Schema(
   { timestamps: true }
 );
 
-MSchema.plugin(softDeletePlugin);
 MSchema.index(
   { name: 1 },
   { unique: true, partialFilterExpression: { isDeleted: false } }
 );
+MSchema.plugin(softDeletePlugin);
+MSchema.plugin(versionSemverPlugin, { defaultVersion: VERSIONS.tournament });
 
 export type TournamentDb = InferSchemaType<typeof MSchema>; // no need to add _id manually here
 

@@ -1,9 +1,11 @@
 // data/teams/schema.ts
 import { string, z } from "zod";
 import { InferSchemaType, Model, model, models, Schema, Types } from "mongoose";
-import { softDeletePlugin } from "@/data/softDelete";
+import { softDeletePlugin } from "@/data/_plugins/softDelete";
 import { zObjectId } from "@/data/_helpers";
 import { group } from "console";
+import { versionSemverPlugin } from "../_plugins/version";
+import { VERSIONS } from "../version";
 
 // Regex used both in Mongoose and (optionally) in Zod below
 const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -95,11 +97,12 @@ const mongooseSchema = new Schema(
   }
 );
 
-mongooseSchema.plugin(softDeletePlugin);
 mongooseSchema.index(
   { tournamentId: 1, name: 1 },
   { unique: true, partialFilterExpression: { isDeleted: false } }
 );
+mongooseSchema.plugin(softDeletePlugin);
+mongooseSchema.plugin(versionSemverPlugin, { defaultVersion: VERSIONS.team });
 
 export type TeamDb = InferSchemaType<typeof mongooseSchema> & {
   _id: Types.ObjectId;

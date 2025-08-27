@@ -1,6 +1,6 @@
 // data/managers/schema.ts
 import { Schema, model, models } from "mongoose";
-import { softDeletePlugin } from "@/data/softDelete";
+import { softDeletePlugin } from "@/data/_plugins/softDelete";
 
 const mongooseSchema = new Schema(
   {
@@ -34,5 +34,4 @@ mongooseSchema.index(
 );
 mongooseSchema.plugin(softDeletePlugin);
 
-export const ManagerModel =
-  models.Manager ?? model("Manager", mongooseSchema);
+export const ManagerModel = models.Manager ?? model("Manager", mongooseSchema);

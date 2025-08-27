@@ -1,8 +1,10 @@
 // data/matches/schema.ts
 import { z } from "zod";
 import { model, models, Schema } from "mongoose";
-import { softDeletePlugin } from "@/data/softDelete";
+import { softDeletePlugin } from "@/data/_plugins/softDelete";
 import { zObjectId } from "@/data/_helpers";
+import { versionSemverPlugin } from "../_plugins/version";
+import { VERSIONS } from "../version";
 
 const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
@@ -121,5 +123,8 @@ mongooseSchema.index(
 );
 
 mongooseSchema.plugin(softDeletePlugin);
+mongooseSchema.plugin(versionSemverPlugin, {
+  defaultVersion: VERSIONS.matches,
+});
 
 export const MatchModel = models.Match || model("Match", mongooseSchema);

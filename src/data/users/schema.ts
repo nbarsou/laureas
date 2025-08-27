@@ -1,5 +1,7 @@
 import { model, models, Schema } from "mongoose";
-import { softDeletePlugin } from "@/data/softDelete";
+import { softDeletePlugin } from "@/data/_plugins/softDelete";
+import { versionSemverPlugin } from "../_plugins/version";
+import { VERSIONS } from "../version";
 
 const mongooseSchema = new Schema(
   {
@@ -27,5 +29,6 @@ mongooseSchema.index(
   { unique: true, partialFilterExpression: { isDeleted: false } }
 );
 mongooseSchema.plugin(softDeletePlugin);
+mongooseSchema.plugin(versionSemverPlugin, { defaultVersion: VERSIONS.user });
 
 export const UserModel = models.User || model("User", mongooseSchema);

@@ -1,10 +1,12 @@
 // data/venues/schema.ts
 import { z } from "zod";
 import { InferSchemaType, Model, model, models, Schema, Types } from "mongoose";
-import { softDeletePlugin } from "@/data/softDelete";
+import { softDeletePlugin } from "@/data/_plugins/softDelete";
 import { zObjectId } from "@/data/_helpers";
 import { required } from "zod/mini";
 import { GroupOut } from "../groups/schema";
+import { versionSemverPlugin } from "../_plugins/version";
+import { VERSIONS } from "../version";
 
 /* ---------- Enums / helpers ---------- */
 export const SurfaceType = z.enum(["grass", "turf", "indoor", "other"]);
@@ -61,6 +63,7 @@ mongooseSchema.index(
   { unique: true, partialFilterExpression: { isDeleted: false } }
 );
 mongooseSchema.plugin(softDeletePlugin);
+mongooseSchema.plugin(versionSemverPlugin, { defaultVersion: VERSIONS.venue });
 
 export type VenueDb = InferSchemaType<typeof mongooseSchema> & {
   _id: Types.ObjectId;

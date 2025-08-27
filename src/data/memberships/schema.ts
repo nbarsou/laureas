@@ -1,6 +1,6 @@
 // data/groups/schema.ts
 import { Schema, model, models } from "mongoose";
-import { softDeletePlugin } from "@/data/softDelete";
+import { softDeletePlugin } from "@/data/_plugins/softDelete";
 
 type Role = "admin" | "staff";
 const mongooseSchema = new Schema(

@@ -2,7 +2,9 @@
 import { z } from "zod";
 import { model, models, Schema } from "mongoose";
 import { zObjectId } from "@/data/_helpers";
-import { softDeletePlugin } from "@/data/softDelete";
+import { softDeletePlugin } from "@/data/_plugins/softDelete";
+import { versionSemverPlugin } from "../_plugins/version";
+import { VERSIONS } from "../version";
 
 export const PlayerCreate = z.object({
   teamId: zObjectId,
@@ -55,5 +57,5 @@ mongooseSchema.index(
   { unique: true, partialFilterExpression: { isDeleted: false } }
 );
 mongooseSchema.plugin(softDeletePlugin);
-
+mongooseSchema.plugin(versionSemverPlugin, { defaultVersion: VERSIONS.player });
 export const PlayerModel = models.Player || model("Player", mongooseSchema);
