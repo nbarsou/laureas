@@ -22,7 +22,7 @@ export function generateRoundRobin(teams: ObjId[], double: boolean): Pairing[] {
       const homeFirst = r % 2 === 1;
       out.push({
         round: r,
-        leg: 1 as 1, // << narrow to literal 1
+        leg: 1 as 1, // << narrow to literal 1th
         home: homeFirst ? a : b,
         away: homeFirst ? b : a,
       });

@@ -17,7 +17,7 @@ import {
   noVenueTimeClash,
   onlyGroupAllowedDays,
   spreadOnePerDay,
-} from "@/lib/scheduling/constrains";
+} from "@/lib/scheduling/constraints";
 import type { Pairing, Ctx, ConcreteSlot } from "@/lib/scheduling/types";
 import { GroupModel } from "@/data/groups/schema";
 

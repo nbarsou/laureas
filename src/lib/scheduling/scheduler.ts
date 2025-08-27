@@ -80,7 +80,7 @@ export async function scheduleGreedy(
         $set: {
           status: "scheduled",
           venueId: s.venueId,
-          date: new Date(`${s.dateISO}T00:00:00.000Z`),
+          date: new Date(`${s.dateISO}T12:00:00.000Z`),
           start_time: s.start_time,
           end_time: s.end_time,
         },
