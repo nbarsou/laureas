@@ -1,16 +1,15 @@
-// // src/lib/logging/index.ts
+// src/lib/logging/index.ts
 import { consoleLogger } from "./console";
-import { Logger } from "./types";
+import type { Logger } from "./types";
 
-let logger: Logger = consoleLogger; // default
+let logger: Logger = consoleLogger;
 
-// // Server-side? swap automatically if WINSTON=true
-// if (typeof window === "undefined" && process.env.WINSTON === "true") {
-//   // eslint-disable-next-line global-require
-//   const { winstonLogger } = require("./winston");
-//   logger = winstonLogger;
-// }
+// Server-side + WINSTON=true → swap providers
+if (typeof window === "undefined" && process.env.WINSTON === "true") {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { winstonLogger } = require("./winston");
+  logger = winstonLogger;
+}
 
-// Re-export the concrete logger + helpers if needed
 export { logger };
 export * from "./types";
