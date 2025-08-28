@@ -3,25 +3,6 @@ import { softDeletePlugin } from "@/data/_plugins/softDelete";
 import { versionSemverPlugin } from "@/data/_plugins/version";
 import { TEAM_VERSION } from "./version";
 
-// Regex used both in Mongoose and (optionally) in Zod below
-const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
-
-const TimeWindow = new Schema(
-  {
-    start: { type: String, match: HHMM },
-    end: { type: String, match: HHMM },
-  },
-  { _id: false }
-);
-
-const AvailabilitySchema = new Schema(
-  {
-    allowed: { type: Map, of: [TimeWindow], default: undefined }, // keys "0".."6"
-    preferredStarts: { type: [String], default: [] },
-  },
-  { _id: false }
-);
-
 const TeamSchema = new Schema(
   {
     tournamentId: {
@@ -42,7 +23,6 @@ const TeamSchema = new Schema(
       match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Invalid email"],
       required: true,
     },
-    availability: { type: AvailabilitySchema, default: undefined },
   },
   {
     timestamps: true, // adds createdAt & updatedAt

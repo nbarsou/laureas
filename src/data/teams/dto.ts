@@ -6,7 +6,7 @@ export const TeamCreateIn = z.object({
   tournamentId: zObjectId,
   groupId: zObjectId.optional(), // not required in Mongoose schema
   name: z.string().min(1, "Name is required"),
-  manager: z.string().email("Invalid email"),
+  manager: z.email("Invalid email"),
 });
 export type TeamCreateIn = z.infer<typeof TeamCreateIn>;
 
@@ -21,14 +21,14 @@ export const TeamOut = z.object({
   tournamentId: z.string(),
   groupId: z.string().optional(),
   name: z.string(),
-  manager: z.string().email(),
+  manager: z.email("Invalid email"),
   // If you want to include availability in responses, add it here later.
 });
 
 export type TeamOut = z.infer<typeof TeamOut>;
 
 export const TeamGroupNameOut = TeamOut.partial().extend({
-  groupName: z.string().optional(), // only needed when update comes from a form
+  groupName: z.string(), // only needed when update comes from a form
 });
 
 export type TeamGroupNameOut = z.infer<typeof TeamGroupNameOut>;
