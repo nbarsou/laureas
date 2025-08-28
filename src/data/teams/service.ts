@@ -7,33 +7,11 @@ import { z } from "zod";
 import { TeamModel } from "./model";
 import { TeamCreateIn, TeamGroupNameOut, TeamUpdateIn } from "./dto";
 import { toTeamOut } from "./serializer";
-import { zObjectId } from "@/data/_helpers";
+import { safeParseForm, zObjectId } from "@/data/_helpers";
 import { logger } from "@/lib/logging";
 import { time } from "@/lib/logging/timing";
 import { getConn } from "@/lib/db";
-import type { ActionResult } from "@/data/_helpers"; // if you have it there
-
-const notDeleted = { deletedAt: { $in: [null, undefined] } };
-
-/** Generic FormData → plain object (handles repeated keys → arrays) */
-function formDataToObject(fd: FormData): Record<string, any> {
-  const out: Record<string, any> = {};
-  for (const [k, v] of fd.entries()) {
-    if (k in out) {
-      const cur = out[k];
-      out[k] = Array.isArray(cur) ? [...cur, v] : [cur, v];
-    } else {
-      out[k] = v;
-    }
-  }
-  return out;
-}
-
-/** One-liner: parse any FormData with a Zod schema (no manual field picking) */
-function safeParseForm<T>(fd: FormData, schema: z.ZodSchema<T>) {
-  const raw = formDataToObject(fd);
-  return schema.safeParse(raw);
-}
+import type { ActionResult } from "@/data/_helpers";
 
 /* ════════════════  C R E A T E  ════════════════ */
 

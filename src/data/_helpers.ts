@@ -22,3 +22,23 @@ export type ActionResult = {
   /** sticky values to re-fill the form after a failed submit */
   values?: Record<string, any>;
 };
+
+/** Generic FormData → plain object (handles repeated keys → arrays) */
+export function formDataToObject(fd: FormData): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const [k, v] of fd.entries()) {
+    if (k in out) {
+      const cur = out[k];
+      out[k] = Array.isArray(cur) ? [...cur, v] : [cur, v];
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
+/** One-liner: parse any FormData with a Zod schema (no manual field picking) */
+export function safeParseForm<T>(fd: FormData, schema: z.ZodSchema<T>) {
+  const raw = formDataToObject(fd);
+  return schema.safeParse(raw);
+}
