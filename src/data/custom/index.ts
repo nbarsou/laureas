@@ -1,3 +1,4 @@
 export * from "./dto";
-export * from "./model";
+export * from "./entries.model";
 export * from "./service";
+
