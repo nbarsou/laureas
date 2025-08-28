@@ -5,25 +5,29 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { TeamModel } from "./model";
-import { TeamCreateIn, TeamGroupNameOut, TeamUpdateIn } from "./dto";
-import { toTeamOut } from "./serializer";
-import { safeParseForm, zObjectId } from "@/data/_helpers";
+import { TeamCreateIn, TeamGroupNameOut, TeamOut, TeamUpdateIn } from "./dto";
+import { toTeamGroupNameOut, toTeamOut } from "./serializer";
+import { safeParseForm, zObjectId, ActionResult } from "@/data/_helpers";
 import { logger } from "@/lib/logging";
 import { time } from "@/lib/logging/timing";
 import { getConn } from "@/lib/db";
-import type { ActionResult } from "@/data/_helpers";
 
 /* ════════════════  C R E A T E  ════════════════ */
 
-/** Server Action (FormData path) */
 export async function createTeam(
-  tid: string,
+  tid: string, // TODO: Replace with slugs later.
   _prev: unknown,
   formData: FormData
 ): Promise<ActionResult> {
-  logger.info("teams.create.start", {
-    tid: String(formData.get("tournamentId") ?? ""),
-  });
+  logger.debug("teams.create.start", { tid });
+
+  const tidOk = zObjectId.safeParse(tid);
+  if (!tidOk.success) {
+    logger.warn("teams.create.invalid_tournamentId", { tid });
+    return { ok: false, message: "Invalid tournament id." };
+  }
+
+  formData.set("tournamentId", tid);
 
   const validated = safeParseForm(formData, TeamCreateIn);
   if (!validated.success) {
@@ -34,7 +38,7 @@ export async function createTeam(
       message: "Validation failed.",
       errors: fieldErrors, // Record<string, string[]>
       // values: stickyValuesHere,  // e.g. Object.fromEntries(formData)
-    } satisfies ActionResult;
+    };
   }
 
   try {
@@ -59,10 +63,11 @@ export async function createTeam(
 
 /* ════════════════  R E A D  ════════════════ */
 
-export async function getTeam(teamId: string) {
+export async function getTeam(teamId: string): Promise<TeamOut | null> {
+  logger.debug("teams.get.start", { teamId });
   const id = zObjectId.safeParse(teamId);
   if (!id.success) {
-    logger.warn("listTeams.invalidTeamId", { teamId });
+    logger.warn("teams.get.invalid_id", { teamId });
     // throw new AppError("BAD_REQUEST", "Invalid team id");
     throw new Error("Invalid team id");
   }
@@ -70,52 +75,61 @@ export async function getTeam(teamId: string) {
   try {
     await getConn();
     row = await time("db.teams.findById", () =>
-      TeamModel.findOne({ _id: id.data }).lean().exec()
+      TeamModel.findById(id.data).lean().exec()
     );
   } catch (error) {
-    logger.error("getTeam.db_connection", error);
+    logger.error("teams.get.db_conn", error);
     throw new Error("Database Error: Failed to fetch team.");
   }
+  logger.debug("teams.get.ok", { teamId });
   return row ? toTeamOut(row) : null;
 }
 
-export async function listTeams(tournamentId: string, limit = 100) {
+export async function listTeams(
+  tournamentId: string,
+  limit = 100
+): Promise<TeamOut[] | null> {
+  logger.debug("teams.list.byTournament.start", { tournamentId });
   const id = zObjectId.safeParse(tournamentId);
   if (!id.success) {
-    logger.warn("listTeams.tournamentId", { tournamentId });
+    logger.warn("teams.list.byTournament.invalid_id", { tournamentId });
     throw new Error("Invalid tournament id");
   }
 
   let rows;
   try {
     await getConn();
-    rows = await time("db.teams.findAll", () =>
-      TeamModel.find({ tournamentId: id.data }).limit(limit).exec()
+    rows = await time("db.teams.findByTournament", () =>
+      TeamModel.find({ tournamentId: id.data }).limit(limit).lean().exec()
     );
   } catch (error) {
-    logger.error("listTeams.db_connection", { error });
+    logger.error("teams.list.byTournament.db_conn", { error });
     throw new Error("Database Error: Failed to fetch teams.");
   }
 
-  return rows.map(toTeamOut);
+  logger.debug("teams.list.byTournament.ok", { tournamentId });
+  return rows ? rows.map(toTeamOut) : null;
 }
 
 export async function listTeamsWithGroupName(
   tournamentId: string
-): Promise<TeamGroupNameOut[]> {
-  // 1) Validate input
+): Promise<TeamGroupNameOut[] | null> {
+  logger.debug("list.teams.hydrate.groupName.start", { tournamentId });
   const id = zObjectId.safeParse(tournamentId);
   if (!id.success) {
-    logger.warn("listTeamsWithGroupName.invalidTournamentId", { tournamentId });
+    logger.warn("list.teams.hydrate.groupName.invalid_id", {
+      tournamentId,
+    });
     throw new Error("Invalid tournament id");
   }
 
+  let rows;
   try {
     // 2) Connect
     await getConn();
 
     // 3) Query (timed)
-    const rows = await time("db.teams.aggregateWithGroup", () =>
+    rows = await time("db.teams.aggregateWithGroup", () =>
       TeamModel.aggregate<TeamGroupNameOut>([
         // Soft delete: mirror your "notDeleted" logic from .find()
         // Prefer using deletedAt to match the rest of your codebase:
@@ -156,34 +170,44 @@ export async function listTeamsWithGroupName(
     );
 
     // 4) Return normalized payload
-    return rows;
   } catch (error) {
-    logger.error("listTeamsWithGroupName.db_error", {
+    logger.error("list.teams.hydrate.groupName.db_conn", {
       error,
       tournamentId: String(id.data),
     });
     throw new Error("Database Error: Failed to fetch teams.");
   }
+  logger.debug("list.teams.hydrate.groupName.ok", { tournamentId });
+  return rows ? rows.map(toTeamGroupNameOut) : null;
 }
 
 /* ════════════════  U P D A T E  ════════════════ */
-
-/** Server Action (FormData path) */
+// TODO: Add teamId as a param.
 export async function updateTeam(
-  tid: string,
+  tid: string, // TODO: Replace with slug
   _prev: unknown,
   formData: FormData
 ): Promise<ActionResult> {
+  logger.debug("teams.update.start", { tid });
+
+  const tidOk = zObjectId.safeParse(tid);
+  if (!tidOk.success) {
+    logger.warn("teams.update.invalid_id", { tid });
+    return { ok: false, message: "Invalid tournament id." };
+  }
+
+  formData.set("tournamentId", tid);
+
   const validated = safeParseForm(formData, TeamUpdateIn);
   if (!validated.success) {
     const { fieldErrors } = z.flattenError(validated.error);
-    logger.warn("teams.create.invalid", { fieldErrors });
+    logger.warn("teams.update.invalid", { fieldErrors });
     return {
       ok: false,
       message: "Validation failed.",
       errors: fieldErrors, // Record<string, string[]>
       // values: stickyValuesHere,  // e.g. Object.fromEntries(formData)
-    } satisfies ActionResult;
+    };
   }
 
   const { _id, ...patch } = validated.data;
@@ -199,9 +223,7 @@ export async function updateTeam(
       TeamModel.findByIdAndUpdate(_id, patch, {
         runValidators: true,
         new: false,
-      })
-        .select("tournamentId")
-        .exec()
+      }).exec()
     );
 
     if (!updated) {
@@ -209,7 +231,7 @@ export async function updateTeam(
       return { ok: false, message: "Team not found." };
     }
 
-    logger.info("teams.update.ok", { id: _id });
+    logger.info("teams.update.ok", { id: String(_id) });
   } catch (error) {
     logger.error("teams.update.fail", error);
     return { ok: false, message: "Database Error: Failed to update team." };
@@ -236,7 +258,7 @@ export async function softDeleteTeam(
     await getConn();
 
     const team = await time("db.teams.getForDelete", () =>
-      TeamModel.findById({ _id: id }).exec()
+      TeamModel.findById(id.data).exec()
     );
 
     if (!team) {
@@ -269,10 +291,16 @@ export async function restoreTeam(
   }
   try {
     await getConn();
-    await time("db.teams.restore", () =>
-      TeamModel.updateOne({ _id: id }).exec()
+    const team = await time("db.teams.getForRestore", () =>
+      TeamModel.findById(id.data).exec()
     );
-    logger.info("teams.restore.ok", { id });
+    if (!team) {
+      logger.warn("teams.restore.not_found", { teamId });
+      return { ok: false, message: "Team not found." };
+    }
+
+    await time("db.teams.restore", () => (team as any).restore());
+    logger.info("teams.restore.ok", { teamId });
   } catch (error) {
     logger.error("teams.restore.fail", error);
     return { ok: false, message: "Database Error: Failed to restore team." };
