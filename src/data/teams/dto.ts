@@ -24,4 +24,11 @@ export const TeamOut = z.object({
   manager: z.string().email(),
   // If you want to include availability in responses, add it here later.
 });
+
 export type TeamOut = z.infer<typeof TeamOut>;
+
+export const TeamGroupNameOut = TeamOut.partial().extend({
+  groupName: z.string().optional(), // only needed when update comes from a form
+});
+
+export type TeamGroupNameOut = z.infer<typeof TeamGroupNameOut>;

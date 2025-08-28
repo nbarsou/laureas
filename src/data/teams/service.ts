@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { TeamModel } from "./model";
-import { TeamCreateIn, TeamUpdateIn } from "./dto";
+import { TeamCreateIn, TeamGroupNameOut, TeamUpdateIn } from "./dto";
 import { toTeamOut } from "./serializer";
 import { zObjectId } from "@/data/_helpers";
 import { logger } from "@/lib/logging";
@@ -120,6 +120,72 @@ export async function listTeams(tournamentId: string, limit = 100) {
   }
 
   return rows.map(toTeamOut);
+}
+
+export async function listTeamsWithGroupName(
+  tournamentId: string
+): Promise<TeamGroupNameOut[]> {
+  // 1) Validate input
+  const id = zObjectId.safeParse(tournamentId);
+  if (!id.success) {
+    logger.warn("listTeamsWithGroupName.invalidTournamentId", { tournamentId });
+    throw new Error("Invalid tournament id");
+  }
+
+  try {
+    // 2) Connect
+    await getConn();
+
+    // 3) Query (timed)
+    const rows = await time("db.teams.aggregateWithGroup", () =>
+      TeamModel.aggregate<TeamGroupNameOut>([
+        // Soft delete: mirror your "notDeleted" logic from .find()
+        // Prefer using deletedAt to match the rest of your codebase:
+        {
+          $match: {
+            tournamentId: id.data,
+            deletedAt: { $in: [null, undefined] },
+          },
+        },
+        {
+          $lookup: {
+            from: "groups",
+            localField: "groupId",
+            foreignField: "_id",
+            as: "grp",
+            pipeline: [{ $project: { _id: 1, name: 1 } }],
+          },
+        },
+        { $unwind: { path: "$grp", preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            _id: { $toString: "$_id" },
+            tournamentId: { $toString: "$tournamentId" },
+            groupId: {
+              $cond: [
+                { $ifNull: ["$groupId", false] },
+                { $toString: "$groupId" },
+                "$$REMOVE",
+              ],
+            },
+            name: 1,
+            manager: 1,
+            groupName: { $ifNull: ["$grp.name", null] },
+          },
+        },
+        { $sort: { name: 1 } },
+      ]).exec()
+    );
+
+    // 4) Return normalized payload
+    return rows;
+  } catch (error) {
+    logger.error("listTeamsWithGroupName.db_error", {
+      error,
+      tournamentId: String(id.data),
+    });
+    throw new Error("Database Error: Failed to fetch teams.");
+  }
 }
 
 /* ════════════════  U P D A T E  ════════════════ */
