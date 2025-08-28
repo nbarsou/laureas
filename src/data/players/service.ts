@@ -6,15 +6,14 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { PlayerModel } from "@/data/players/model";
-
 import { PlayerCreateIn, PlayerUpdateIn, PlayerOut } from "@/data/players/dto";
+import { toPlayerOut } from "./serializer";
 
 import { getConn } from "@/lib/db";
 import { logger } from "@/lib/logging";
 import { time } from "@/lib/logging/timing";
 
 import { ActionResult, safeParseForm, zObjectId } from "@/data/_helpers";
-import { toPlayerOut } from "./serializer";
 
 /* ════════════════  C R E A T E  ════════════════ */
 
@@ -143,20 +142,22 @@ export async function listPlayersByTeam(
 
 /* ════════════════  U P D A T E  ════════════════ */
 // TODO: Add playerId as a param.
+// TODO: Check that the player belongs to the tournament.
 export async function updatePlayer(
   tid: string, // TODO: Replace with slug
+  teamId: string,
   _prevState: unknown,
   formData: FormData
 ): Promise<ActionResult> {
-  logger.debug("players.update.start", { tid });
+  logger.debug("players.update.start", { teamId });
 
-  const idCheck = zObjectId.safeParse(formData.get("_id"));
+  const idCheck = zObjectId.safeParse(teamId);
   if (!idCheck.success) {
-    logger.warn("players.update.invalid_id", { id: formData.get("_id") });
-    return { ok: false, message: "Invalid player id." };
+    logger.warn("players.update.invalid_id", { teamId });
+    return { ok: false, message: "Invalid team id." };
   }
 
-  formData.set("tournamentId", tid);
+  formData.set("teamdId", teamId);
 
   const validated = safeParseForm(formData, PlayerUpdateIn);
 
@@ -206,6 +207,8 @@ export async function deletePlayer(
   by?: string,
   reason?: string
 ): Promise<ActionResult> {
+  logger.debug("players.delete.start", { playerId });
+
   const id = zObjectId.safeParse(playerId);
   if (!id.success) {
     logger.warn("players.delete.invalid_id", { playerId });
@@ -234,6 +237,7 @@ export async function deletePlayer(
   revalidatePath(`/tournament/${tid}/players`);
   return { ok: true };
 }
+
 export async function restorePlayer(
   tid: string,
   playerId: string

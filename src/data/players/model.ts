@@ -3,6 +3,8 @@ import { softDeletePlugin } from "@/data/_plugins/softDelete";
 import { versionSemverPlugin } from "@/data/_plugins/version";
 import { PLAYER_VERSION } from "./version";
 
+// TODO: Add tournamentId, when adding auth to check. 
+
 const PlayerSchema = new Schema(
   {
     teamId: {
