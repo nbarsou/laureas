@@ -1,259 +1,238 @@
-// src/data/teams/service.ts
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { Types, type HydratedDocument } from "mongoose";
-import { getConn } from "@/lib/db";
+import { z } from "zod";
+
+import { TeamModel } from "./model";
+import { TeamCreateIn, TeamUpdateIn } from "./dto";
+import { toTeamOut } from "./serializer";
+import { zObjectId } from "@/data/_helpers";
 import { logger } from "@/lib/logging";
-import { zObjectId, type ActionResult } from "@/data/_helpers";
-import { TeamModel, TeamCreate, TeamUpdate, Team, TeamDb } from "./schema";
+import { time } from "@/lib/logging/timing";
+import { getConn } from "@/lib/db";
+import type { ActionResult } from "@/data/_helpers"; // if you have it there
 
-/* ───────── Helpers ───────── */
+const notDeleted = { deletedAt: { $in: [null, undefined] } };
 
-const toTeamOut = (d: Team): Team => ({
-  _id: String(d._id),
-  tournamentId: String(d.tournamentId),
-  ...(d.groupId ? { groupId: String(d.groupId) } : {}),
-  name: d.name,
-  manager: d.manager,
-});
-
-/* Optional hydrated fetch when you need doc methods/virtuals */
-export async function getTeamDoc(
-  id: string
-): Promise<HydratedDocument<TeamDb> | null> {
-  await getConn();
-  return TeamModel.findById(id); // non-lean
+/** Generic FormData → plain object (handles repeated keys → arrays) */
+function formDataToObject(fd: FormData): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const [k, v] of fd.entries()) {
+    if (k in out) {
+      const cur = out[k];
+      out[k] = Array.isArray(cur) ? [...cur, v] : [cur, v];
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
 }
 
-/* ════════════════  C R E A T E  ════════════════
-   Bind tournamentId from the page: action={createTeam.bind(null, tid)} */
-export async function createTeam(
-  tournamentId: string,
-  _prev: unknown,
-  form: FormData
-): Promise<ActionResult> {
-  const payload = {
-    tournamentId,
-    name: String(form.get("name") ?? ""),
-    manager: String(form.get("manager") ?? ""),
-    // groupId optional: String(form.get("groupId") ?? "") if you include it
-  };
+/** One-liner: parse any FormData with a Zod schema (no manual field picking) */
+function safeParseForm<T>(fd: FormData, schema: z.ZodSchema<T>) {
+  const raw = formDataToObject(fd);
+  return schema.safeParse(raw);
+}
 
-  const parsed = TeamCreate.safeParse(payload);
-  if (!parsed.success) {
+/* ════════════════  C R E A T E  ════════════════ */
+
+/** Server Action (FormData path) */
+export async function createTeam(
+  tid: string,
+  _prev: unknown,
+  formData: FormData
+): Promise<ActionResult> {
+  logger.info("teams.create.start", {
+    tid: String(formData.get("tournamentId") ?? ""),
+  });
+
+  const validated = safeParseForm(formData, TeamCreateIn);
+  if (!validated.success) {
+    const { fieldErrors } = z.flattenError(validated.error);
+    logger.warn("teams.create.invalid", { fieldErrors });
     return {
       ok: false,
-      message: "Validation failed",
-      errors: parsed.error.flatten().fieldErrors,
-    };
+      message: "Validation failed.",
+      errors: fieldErrors, // Record<string, string[]>
+      // values: stickyValuesHere,  // e.g. Object.fromEntries(formData)
+    } satisfies ActionResult;
   }
 
   try {
     await getConn();
-    await TeamModel.create(parsed.data);
-  } catch (err: any) {
-    logger.error(err);
-    return { ok: false, message: "Database Error: Failed to Create Team." };
+
+    const doc = await time("db.teams.create", () =>
+      TeamModel.create(validated.data)
+    );
+
+    logger.info("teams.create.ok", {
+      id: String(doc._id),
+      tournamentId: String(doc.tournamentId),
+    });
+  } catch (error) {
+    logger.error("teams.create.fail", error);
+    return { ok: false, message: "Database Error: Failed to create team." };
   }
 
-  revalidatePath(`/tournament/${tournamentId}/teams`);
-  redirect(`/tournament/${tournamentId}/teams`);
+  revalidatePath(`/tournament/${tid}/teams`); // adjust path to your routes
+  redirect(`/tournament/${tid}/teams`);
 }
 
 /* ════════════════  R E A D  ════════════════ */
 
-export async function fetchAllTeams(): Promise<Team[]> {
-  await getConn();
-  const rows = await TeamModel.find(
-    {},
-    { _id: 1, tournamentId: 1, groupId: 1, name: 1, manager: 1 }
-  )
-    .sort({ name: 1 })
-    .lean()
-    .exec();
-
-  const out = (rows as any[]).map((r) => ({
-    _id: String(r._id),
-    tournamentId: String(r.tournamentId),
-    ...(r.groupId ? { groupId: String(r.groupId) } : {}),
-    name: String(r.name),
-    manager: String(r.manager),
-  })) as Team[];
-
-  return out;
-}
-
-export async function fetchTeamsByTournamentId(
-  tournamentId: string
-): Promise<Team[]> {
-  await getConn();
-  zObjectId.parse(tournamentId);
-
-  const rows = await TeamModel.find(
-    { tournamentId },
-    { _id: 1, tournamentId: 1, groupId: 1, name: 1, manager: 1 }
-  )
-    .sort({ name: 1 })
-    .lean()
-    .exec();
-
-  const out = (rows as any[]).map((r) => ({
-    _id: String(r._id),
-    tournamentId: String(r.tournamentId),
-    ...(r.groupId ? { groupId: String(r.groupId) } : {}),
-    name: String(r.name),
-    manager: String(r.manager),
-  })) as Team[];
-
-  return out;
-}
-
-export async function fetchTeamById(id: string): Promise<Team | null> {
-  await getConn();
-  zObjectId.parse(id);
-  const row = (await TeamModel.findById(id).lean().exec()) as Team | null;
+export async function getTeam(teamId: string) {
+  const id = zObjectId.safeParse(teamId);
+  if (!id.success) {
+    logger.warn("listTeams.invalidTeamId", { teamId });
+    // throw new AppError("BAD_REQUEST", "Invalid team id");
+    throw new Error("Invalid team id");
+  }
+  let row;
+  try {
+    await getConn();
+    row = await time("db.teams.findById", () =>
+      TeamModel.findOne({ _id: id.data }).lean().exec()
+    );
+  } catch (error) {
+    logger.error("getTeam.db_connection", error);
+    throw new Error("Database Error: Failed to fetch team.");
+  }
   return row ? toTeamOut(row) : null;
 }
 
-/* If you want the joined group name in one call (string ids already) */
-export type TeamWithGroup = Team & { groupName: string | null };
+export async function listTeams(tournamentId: string, limit = 100) {
+  const id = zObjectId.safeParse(tournamentId);
+  if (!id.success) {
+    logger.warn("listTeams.tournamentId", { tournamentId });
+    throw new Error("Invalid tournament id");
+  }
 
-export async function fetchTeamsWithGroupName(
-  tournamentId: string
-): Promise<TeamWithGroup[]> {
-  await getConn();
-  const tid = new Types.ObjectId(zObjectId.parse(tournamentId));
+  let rows;
+  try {
+    await getConn();
+    rows = await time("db.teams.findAll", () =>
+      TeamModel.find({ tournamentId: id.data }).limit(limit).exec()
+    );
+  } catch (error) {
+    logger.error("listTeams.db_connection", { error });
+    throw new Error("Database Error: Failed to fetch teams.");
+  }
 
-  // Note: soft-delete plugin does not affect aggregation; include isDeleted filter manually.
-  const rows = await TeamModel.aggregate<TeamWithGroup>([
-    { $match: { tournamentId: tid, isDeleted: { $ne: true } } },
-    {
-      $lookup: {
-        from: "groups",
-        localField: "groupId",
-        foreignField: "_id",
-        as: "grp",
-        pipeline: [{ $project: { _id: 1, name: 1 } }],
-      },
-    },
-    { $unwind: { path: "$grp", preserveNullAndEmptyArrays: true } },
-    {
-      $project: {
-        _id: { $toString: "$_id" },
-        tournamentId: { $toString: "$tournamentId" },
-        groupId: {
-          $cond: [
-            { $ifNull: ["$groupId", false] },
-            { $toString: "$groupId" },
-            "$$REMOVE",
-          ],
-        },
-        name: 1,
-        manager: 1,
-        groupName: { $ifNull: ["$grp.name", null] },
-      },
-    },
-    { $sort: { name: 1 } },
-  ]).exec();
-
-  return rows;
+  return rows.map(toTeamOut);
 }
 
 /* ════════════════  U P D A T E  ════════════════ */
 
+/** Server Action (FormData path) */
 export async function updateTeam(
   tid: string,
   _prev: unknown,
-  form: FormData
+  formData: FormData
 ): Promise<ActionResult> {
-  const raw = Object.fromEntries(form);
-  const parsed = TeamUpdate.safeParse(raw);
-  if (!parsed.success) {
+  const validated = safeParseForm(formData, TeamUpdateIn);
+  if (!validated.success) {
+    const { fieldErrors } = z.flattenError(validated.error);
+    logger.warn("teams.create.invalid", { fieldErrors });
     return {
       ok: false,
-      message: "Validation failed",
-      errors: parsed.error.flatten().fieldErrors,
-    };
+      message: "Validation failed.",
+      errors: fieldErrors, // Record<string, string[]>
+      // values: stickyValuesHere,  // e.g. Object.fromEntries(formData)
+    } satisfies ActionResult;
   }
 
-  const { _id, ...update } = parsed.data;
+  const { _id, ...patch } = validated.data;
+  if (!_id) {
+    logger.warn("teams.update.missing_id");
+    return { ok: false, message: "Missing team id." };
+  }
 
   try {
     await getConn();
-    const prev = await TeamModel.findByIdAndUpdate(_id, update, {
-      runValidators: true,
-      new: false,
-    })
-      .select("tournamentId")
-      .lean()
-      .exec();
-    if (!prev) return { ok: false, message: "Team not found." };
-    if (!tid && prev?.tournamentId) tid = String(prev.tournamentId);
-  } catch (err: any) {
-    logger.error(err);
-    return { ok: false, message: "Database Error: Failed to Update Team." };
+
+    const updated = await time("db.teams.updateById", () =>
+      TeamModel.findByIdAndUpdate(_id, patch, {
+        runValidators: true,
+        new: false,
+      })
+        .select("tournamentId")
+        .exec()
+    );
+
+    if (!updated) {
+      logger.warn("teams.update.not_found", { id: _id });
+      return { ok: false, message: "Team not found." };
+    }
+
+    logger.info("teams.update.ok", { id: _id });
+  } catch (error) {
+    logger.error("teams.update.fail", error);
+    return { ok: false, message: "Database Error: Failed to update team." };
   }
 
-  if (tid) {
-    revalidatePath(`/tournament/${tid}/teams`);
-    redirect(`/tournament/${tid}/teams`);
-  } else {
-    revalidatePath(`/tournament`);
-    redirect(`/tournament`);
+  revalidatePath(`/tournament/${tid}/teams/${_id}`);
+  redirect(`/tournament/${tid}/teams/${_id}`);
+}
+/* ════════════════  D E L E T E  (soft) ════════════════ */
+
+export async function softDeleteTeam(
+  tid: string,
+  teamId: string,
+  by?: string,
+  reason?: string
+): Promise<ActionResult> {
+  const id = zObjectId.safeParse(teamId);
+  if (!id.success) {
+    logger.warn("listTeams.tournamentId", { teamId });
+    throw new Error("Invalid tournament id");
   }
+
+  try {
+    await getConn();
+
+    const team = await time("db.teams.getForDelete", () =>
+      TeamModel.findById({ _id: id }).exec()
+    );
+
+    if (!team) {
+      logger.warn("teams.delete.not_found", { id });
+      return { ok: false, message: "Team not found." };
+    }
+
+    await time("db.teams.softDelete", () =>
+      (team as any).softDelete?.(by, reason)
+    );
+
+    logger.info("teams.delete.ok", { id, by, reason });
+  } catch (error) {
+    logger.error("teams.delete.fail", error);
+    return { ok: false, message: "Database Error: Failed to delete team." };
+  }
+
+  revalidatePath(`/tournament/${tid}/teams`);
+  return { ok: true };
 }
 
-/* ════════════════  D E L E T E (soft)  ════════════════
-   Atomic update + return the original for revalidate path. */
-export async function deleteTeam(id: string): Promise<ActionResult> {
-  const idCheck = zObjectId.safeParse(id);
-  if (!idCheck.success) return { ok: false, message: "Invalid id." };
-
+export async function restoreTeam(
+  tid: string,
+  teamId: string
+): Promise<ActionResult> {
+  const id = zObjectId.safeParse(teamId);
+  if (!id.success) {
+    logger.warn("listTeams.tournamentId", { teamId });
+    throw new Error("Invalid tournament id");
+  }
   try {
     await getConn();
-    const prev = await TeamModel.findOneAndUpdate(
-      { _id: idCheck.data }, // not deleted yet, no withDeleted needed
-      {
-        $set: { isDeleted: true, deletedAt: new Date() },
-      },
-      { new: false, projection: { tournamentId: 1 } }
-    ).lean();
-    if (!prev) return { ok: false, message: "Team not found." };
-
-    const tid = String((prev as any).tournamentId);
-    revalidatePath(`/tournament/${tid}/teams`);
-    return { ok: true };
-  } catch (err: any) {
-    logger.error(err);
-    return { ok: false, message: "Database Error: Failed to Delete Team." };
+    await time("db.teams.restore", () =>
+      TeamModel.updateOne({ _id: id }).exec()
+    );
+    logger.info("teams.restore.ok", { id });
+  } catch (error) {
+    logger.error("teams.restore.fail", error);
+    return { ok: false, message: "Database Error: Failed to restore team." };
   }
-}
-
-/* ════════════════  R E S T O R E (soft)  ════════════════
-   Include the withDeleted marker so plugin bypasses the filter. */
-export async function restoreTeam(id: string): Promise<ActionResult> {
-  const idCheck = zObjectId.safeParse(id);
-  if (!idCheck.success) return { ok: false, message: "Invalid id." };
-
-  try {
-    await getConn();
-    const prev = await TeamModel.findOneAndUpdate(
-      { _id: idCheck.data, withDeleted: true }, // marker recognized by your plugin
-      {
-        $set: { isDeleted: false },
-        $unset: { deletedAt: 1, deletedBy: 1, deleteReason: 1 },
-      },
-      { new: false, projection: { tournamentId: 1 } }
-    ).lean();
-    if (!prev) return { ok: false, message: "Team not found." };
-
-    const tid = String((prev as any).tournamentId);
-    revalidatePath(`/tournament/${tid}/teams`);
-    return { ok: true };
-  } catch (err: any) {
-    logger.error(err);
-    return { ok: false, message: "Database Error: Failed to Restore Team." };
-  }
+  revalidatePath(`/tournament/${tid}/teams`);
+  return { ok: true };
 }
