@@ -26,7 +26,10 @@ type HeaderProps = {
   tournamentName?: string | null;
 };
 
+import { useTournamentHeader } from "@/components/layout/header/TournamentHeaderContext";
+
 export default function Header({ tournamentName }: HeaderProps) {
+
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const user = { handle: "nbarsou", name: "Nicolás Barrón" };
@@ -37,7 +40,7 @@ export default function Header({ tournamentName }: HeaderProps) {
     <>
       <header className="h-16 px-4 sm:px-6 bg-neutral-100 backdrop-blur flex items-center justify-between">
         <Link
-          href="/tournament"
+          href="/tournaments"
           className="inline-flex items-center gap-2 font-semibold text-gray-900 hover:text-gray-950"
         >
           <BrandLogo size={40} />
@@ -50,7 +53,7 @@ export default function Header({ tournamentName }: HeaderProps) {
             className="hidden sm:flex items-center text-sm text-gray-600"
           >
             <span className="mx-2 text-gray-400">/</span>
-            <Link href="/tournament" className="hover:text-gray-900">
+            <Link href="/tournaments" className="hover:text-gray-900">
               Tournaments
             </Link>
             <span className="mx-2 text-gray-400">/</span>

@@ -23,6 +23,18 @@ export type ActionResult = {
   values?: Record<string, any>;
 };
 
+/** Parses form booleans reliably from strings or booleans */
+export const zFormBoolean = z.preprocess((v) => {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    if (["true", "1", "on", "yes"].includes(s)) return true;
+    if (["false", "0", "off", "no", ""].includes(s)) return false;
+  }
+  if (typeof v === "number") return v === 1;
+  return v; // let z.boolean() throw if it's something else
+}, z.boolean());
+
 /** Generic FormData → plain object (handles repeated keys → arrays) */
 export function formDataToObject(fd: FormData): Record<string, any> {
   const out: Record<string, any> = {};

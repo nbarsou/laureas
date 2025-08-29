@@ -1,51 +1,71 @@
 // src/data/tournaments/dto.ts
 import { z } from "zod";
-import { zObjectId } from "@/data/_helpers";
+import { zFormBoolean, zObjectId } from "@/data/_helpers";
 
-/** Settings (keep in sync with your mongoose schema) */
-export const SchedulerSettingsShared = z.object({
-  schedulerMode: z.enum(["spread", "compressed"]).default("compressed"),
-  doubleRoundRobin: z.boolean().default(false),
-  minGapMinutesSameDay: z.number().int().nonnegative().default(60),
-  maxBacktracks: z.number().int().nonnegative().default(400),
-  balancePreferredStarts: z.boolean().default(true),
-  allowSameDayDoubleHeader: z.boolean().default(true),
+/** ---------- Zod helpers ---------- */
+const NonEmptyString = z.string().trim().nonempty("This field is required.");
 
-  groupsEnabled: z.boolean().default(false),
-  groupsMode: z.enum(["manual", "auto"]).default("manual"),
-});
-export type SchedulerSettings = z.infer<typeof SchedulerSettingsShared>;
-export const SCHEDULER_DEFAULTS: SchedulerSettings =
-  SchedulerSettingsShared.parse({});
+const CoercedDate = z.coerce.date("Invalid date.");
 
-/** Create (server) — coerce dates, validate ownerId, include settings */
-export const TournamentCreate = z
+/** ---------- Create / Update input ---------- */
+export const TournamentCreateIn = z
   .object({
-    name: z.string().min(1, "Name is required"),
-    startDate: z.coerce.date(),
-    endDate: z.coerce.date(),
-    ownerId: zObjectId,
-    settings: SchedulerSettingsShared.default(SCHEDULER_DEFAULTS),
+    ownerId: zObjectId.describe("Owner").or(
+      z.string().transform(() => {
+        // Let server set ownerId; client can't.
+        // This branch prevents confusing client-side messages if left empty.
+        throw new z.ZodError([
+          { code: "custom", message: "Missing owner.", path: ["ownerId"] },
+        ]);
+      })
+    ),
+    name: NonEmptyString.describe("Tournament name").refine(
+      (v) => v.length >= 2,
+      { message: "Name must be at least 2 characters long." }
+    ),
+    startDate: CoercedDate.describe("Start date"),
+    endDate: CoercedDate.describe("End date"),
+    roundRobinDouble: zFormBoolean.default(false),
+    allowSameDayPlay: zFormBoolean.default(false),
+    groupsEnabled: zFormBoolean.default(false),
   })
-  .refine((d) => d.endDate >= d.startDate, {
+  .refine((data) => data.endDate >= data.startDate, {
+    message: "End date cannot be earlier or the same as start date.",
     path: ["endDate"],
-    message: "End date must be after start date",
   });
 
-/** Update (server) — partial create + _id */
-export const TournamentUpdate = TournamentCreate.partial()
-  .extend({ _id: zObjectId })
-  .refine((d) => (d.startDate && d.endDate ? d.endDate >= d.startDate : true), {
-    path: ["endDate"],
-    message: "End date must be after start date",
-  });
+export type TournamentCreateIn = z.infer<typeof TournamentCreateIn>;
 
-/** Out DTO (what UI consumes) — now includes settings */
+export const TournamentUpdateIn = TournamentCreateIn.partial().extend({
+  _id: zObjectId.optional(),
+});
+export type TournamentUpdateIn = z.infer<typeof TournamentUpdateIn>;
+
+/** ---------- Out (what UI gets) ---------- */
 export const TournamentOut = z.object({
   _id: z.string(),
+  ownerId: z.string(),
   name: z.string(),
-  startDate: z.date(),
-  endDate: z.date(),
-  settings: SchedulerSettingsShared, // expose settings to the client
+  startDate: z.string(), // ISO string for UI
+  endDate: z.string(), // ISO string for UI
+  roundRobinDouble: z.boolean(),
+  allowSameDayPlay: z.boolean(),
+  groupsEnabled: z.boolean(),
 });
-export type Tournament = z.infer<typeof TournamentOut>;
+
+export type TournamentOut = z.infer<typeof TournamentOut>;
+
+/** ---------- Serializer (DB -> Out) ---------- */
+export function toTournamentOut(row: Record<string, any>): TournamentOut {
+  const dto = {
+    _id: String(row._id),
+    ownerId: String(row.ownerId),
+    name: String(row.name),
+    startDate: new Date(row.startDate).toISOString(),
+    endDate: new Date(row.endDate).toISOString(),
+    roundRobinDouble: Boolean(row.roundRobinDouble),
+    allowSameDayPlay: Boolean(row.allowSameDayPlay),
+    groupsEnabled: Boolean(row.groupsEnabled),
+  };
+  return TournamentOut.parse(dto);
+}

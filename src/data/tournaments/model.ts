@@ -1,38 +1,15 @@
-// src/data/tournaments/schema.ts
+// src/data/tournaments/model.ts
+import "server-only";
 import { Schema, model, models } from "mongoose";
 import { softDeletePlugin } from "@/data/_plugins/softDelete";
-import { versionSemverPlugin } from "../_plugins/version";
-import { TOURNAMENT_VERSION } from "./version";
+import { versionSemverPlugin } from "@/data/_plugins/version";
 
-const SchedulerSettingsMongoose = new Schema({
-  schedulerMode: {
-    type: String,
-    enum: ["spread", "compressed"],
-    default: "compressed",
-  },
-  doubleRoundRobin: { type: Boolean, default: false },
-  minGapMinutesSameDay: { type: Number, default: 60 },
-  maxBacktracks: { type: Number, default: 400 },
-  balancePreferredStarts: { type: Boolean, default: true },
-  allowSameDayDoubleHeader: { type: Boolean, default: true },
-  // ✅ Added fields
-  groupsEnabled: { type: Boolean, default: false },
-  groupsMode: {
-    type: String,
-    enum: ["manual", "auto"],
-    default: "manual",
-  },
-});
+const TOURNAMENT_VERSION = "0.0.0";
 
 /* Mongoose schema/model */
-const TournamenSchema = new Schema(
+const TournamentSchema = new Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-      minlength: 1,
-    },
+    name: { type: String, required: true, trim: true, minlength: 1 },
     ownerId: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -41,20 +18,17 @@ const TournamenSchema = new Schema(
     },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
-    settings: SchedulerSettingsMongoose,
-    default: {},
+    roundRobinDouble: { type: Boolean, default: false },
+    allowSameDayPlay: { type: Boolean, default: true },
+    groupsEnabled: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-TournamenSchema.index(
-  { name: 1 },
-  { unique: true, partialFilterExpression: { isDeleted: false } }
-);
-TournamenSchema.plugin(softDeletePlugin);
-TournamenSchema.plugin(versionSemverPlugin, {
+TournamentSchema.plugin(softDeletePlugin);
+TournamentSchema.plugin(versionSemverPlugin, {
   defaultVersion: TOURNAMENT_VERSION,
 });
 
 export const TournamentModel =
-  models.Tournament || model("Tournament", TournamenSchema);
+  models.Tournament || model("Tournament", TournamentSchema);

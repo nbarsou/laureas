@@ -30,7 +30,7 @@ export function SideNav({ tid }: { tid: string }) {
     >
       <nav className="flex flex-col gap-1 p-3">
         {navItems.map(({ label, slug, Icon }) => {
-          const href = `/tournament/${tid}/${slug}`;
+          const href = `/tournaments/${tid}/${slug}`;
           const active = pathname?.startsWith(href) ?? false;
           return (
             <NavButton

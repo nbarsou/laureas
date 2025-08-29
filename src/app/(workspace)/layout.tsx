@@ -1,5 +1,5 @@
 // app/dashboard/layout.tsx
-import Header from "@/components/layout/Header";
+import Header from "@/components/layout/header/Header";
 // import { auth } from '@/lib/auth';                     // wrapper around NextAuth getServerSession
 
 export default async function DashboardLayout({

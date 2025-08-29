@@ -1,13 +1,25 @@
-// components/tournament/NewTournamentForm.tsx
+// src/components/teams/NewTeamForm.tsx
 "use client";
 
-import { createTeam} from "@/data/teams/service";
 import { useActionState } from "react";
+import { createTeamAction } from "@/data/teams/actions";
+import type { ActionResult } from "@/data/_helpers";
 
-const initialState: State = { message: null, errors: {} };
+const initialState: ActionResult = {
+  ok: false,
+  message: undefined,
+  errors: {},
+  values: {},
+};
 
 export function NewTeamForm({ tid }: { tid: string }) {
-  const [state, formAction] = useActionState(createTeam, initialState);
+  // Bind the tournament id so the server action has signature (prev, formData)
+  const action = createTeamAction.bind(null, tid);
+
+  const [state, formAction] = useActionState<ActionResult, FormData>(
+    action,
+    initialState
+  );
 
   const inputBase =
     "w-full border border-black bg-transparent px-3 py-2 rounded outline-none focus:ring-2 focus:ring-black";
@@ -23,13 +35,24 @@ export function NewTeamForm({ tid }: { tid: string }) {
     >
       <h1 className="text-2xl font-semibold">New Team</h1>
 
-      {/* tournamentId (hidden) */}
-      <input type="hidden" name="tournamentId" value={tid} />
-      {state.errors?.tournamentId?.length ? (
-        <p className={helpErr}>{state.errors.tournamentId.join(", ")}</p>
-      ) : null}
+      {/* Optional groupId (if you want to expose it in the form) */}
+      {/* <div>
+        <label htmlFor="groupId" className={labelBase}>Group</label>
+        <input
+          id="groupId"
+          name="groupId"
+          type="text"
+          defaultValue={state.values?.groupId ?? ""}
+          aria-invalid={!!state.errors?.groupId?.length}
+          aria-describedby={state.errors?.groupId?.length ? "groupId-error" : undefined}
+          className={inputBase}
+        />
+        {state.errors?.groupId?.length ? (
+          <p id="groupId-error" className={helpErr}>{state.errors.groupId.join(", ")}</p>
+        ) : null}
+      </div> */}
 
-      {/* name */}
+      {/* Team name */}
       <div>
         <label htmlFor="name" className={labelBase}>
           Team name
@@ -40,6 +63,7 @@ export function NewTeamForm({ tid }: { tid: string }) {
           type="text"
           placeholder="Tigers FC"
           required
+          defaultValue={state.values?.name ?? ""}
           aria-invalid={!!state.errors?.name?.length}
           aria-describedby={
             state.errors?.name?.length ? "name-error" : undefined
@@ -53,7 +77,7 @@ export function NewTeamForm({ tid }: { tid: string }) {
         ) : null}
       </div>
 
-      {/* manager (email) */}
+      {/* Manager (email) */}
       <div>
         <label htmlFor="manager" className={labelBase}>
           Manager email
@@ -64,6 +88,7 @@ export function NewTeamForm({ tid }: { tid: string }) {
           type="email"
           placeholder="manager@example.com"
           required
+          defaultValue={state.values?.manager ?? ""}
           aria-invalid={!!state.errors?.manager?.length}
           aria-describedby={
             state.errors?.manager?.length ? "manager-error" : undefined
@@ -77,7 +102,7 @@ export function NewTeamForm({ tid }: { tid: string }) {
         ) : null}
       </div>
 
-      {/* form-level message */}
+      {/* Form-level message */}
       {state.message && (
         <p className="text-center text-sm text-red-600">{state.message}</p>
       )}

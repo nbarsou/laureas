@@ -1,4 +1,4 @@
-import { fetchPlayersByTeam } from "@/data/players/service";
+import { listPlayersByTeam } from "@/data/players/service";
 // import { EditButton } from "@/components/common/EditButton";
 import { DeleteButton } from "@/components/players/DeletePlayerButton";
 import ClickableRow from "@/components/common/ClickableRow";
@@ -10,7 +10,7 @@ interface Props {
 }
 
 export default async function PlayersTable({ tid, teamId }: Props) {
-  const players = await fetchPlayersByTeam(teamId);
+  const players = await listPlayersByTeam(teamId);
 
   return (
     <table style={{ width: "100%", borderCollapse: "collapse" }}>

@@ -1,5 +1,5 @@
 // components/TournamentsTable.tsx (SERVER)
-import { fetchTeamsWithGroupName } from "@/data/teams/service";
+import { listTeams, listTeamsWithGroupName } from "@/data/teams/service";
 import { EditButton } from "@/components/common/EditButton";
 import { DeleteButton } from "@/components/teams/DeleteTeamButton";
 import ClickableRow from "@/components/common/ClickableRow";
@@ -16,7 +16,7 @@ type TeamWithGroup = {
 };
 
 export default async function TournamentsTable({ tid }: { tid: string }) {
-  const teams = (await fetchTeamsWithGroupName(tid)) as TeamWithGroup[];
+  const teams = (await listTeams(tid)) as TeamWithGroup[];
   if (!teams?.length) return <p style={{ color: "#666" }}>No teams yet.</p>;
 
   const hasGroups = teams.some((t) => t.groupName?.trim().length);
@@ -81,7 +81,7 @@ function FlatTeamsTable({ teams }: { teams: TeamWithGroup[] }) {
                 <EditButton
                   path={`/tournament/${t.tournamentId}/teams/edit/${t._id}`}
                 />
-                <DeleteButton id={t._id} />
+                <DeleteButton id={t._id} tid={t.tournamentId} />
               </div>
             </td>
           </ClickableRow>

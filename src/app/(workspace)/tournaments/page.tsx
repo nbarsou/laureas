@@ -2,16 +2,17 @@
 import TitleRow from "@/components/layout/TitleRow";
 import TournamentCardGrid from "@/components/tournament/TournamentCardGrid";
 import { TournamentGridSkeleton } from "@/components/tournament/TournamentCard/Skeleton";
-import { listTournaments } from "@/data/tournaments/service";
+import { listTournaments } from "@/data/tournaments/actions";
 import { Suspense } from "react";
+import Header from "@/components/layout/header/Header";
 
 async function TournamentsGridServer() {
   const tournaments = await listTournaments();
   return (
     <TournamentCardGrid
       tournaments={tournaments}
-      hrefFor={(t) => `/tournament/${t._id}`}
-      addHref="/tournament/new"
+      hrefFor={(t) => `/tournaments/${t._id}`}
+      addHref="/tournaments/new"
       addLabel="New Tournament"
     />
   );
@@ -23,7 +24,7 @@ export default function Page() {
       {/* Always visible */}
       <TitleRow
         title="Tournaments"
-        actionHref={`/tournament/new`}
+        actionHref={`/tournaments/new`}
         actionLabel={"New Tournament"}
       />
 

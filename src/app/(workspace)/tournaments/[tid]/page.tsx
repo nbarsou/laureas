@@ -6,5 +6,5 @@ type Params = { tid: string };
 export default async function Page({ params }: { params: Promise<Params> }) {
   const { tid } = await params;
   // server-side redirect – no component ever reaches the client
-  redirect(`/tournament/${tid}/home`);
+  redirect(`/tournaments/${tid}/home`);
 }

@@ -36,6 +36,4 @@ TeamSchema.index(
 TeamSchema.plugin(softDeletePlugin);
 TeamSchema.plugin(versionSemverPlugin, { defaultVersion: TEAM_VERSION });
 
-
 export const TeamModel = models.Team || model("Team", TeamSchema);
-export { TeamSchema };
