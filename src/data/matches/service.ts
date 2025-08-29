@@ -3,296 +3,295 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { MatchSchema, MatchModel, Match } from "@/data/matches/schema";
+import { z } from "zod";
+
+import { MatchModel } from "./schema";
+import {
+  MatchCreateIn,
+  MatchUpdateIn,
+  MatchOut,
+  MatchHydratedOut,
+} from "./dto";
+
 import { getConn } from "@/lib/db";
 import { logger } from "@/lib/logging";
-import { zObjectId } from "@/data/_helpers";
-import { ActionResult } from "@/data/_helpers";
-import { Types } from "mongoose";
+import { time } from "@/lib/logging/timing";
 
-/* Write-safe schema */
-const WriteMatch = MatchSchema.omit({ _id: true });
-
-/* Action-state shape */
-export type State = {
-  errors?: {
-    tournamentId?: string[];
-    round?: string[];
-    homeTeamId?: string[];
-    awayTeamId?: string[];
-    score?: string[];
-  };
-  message?: string | null;
-};
-// TODO: Validate the score insert?
-// TODO: Do i really need this way of manually creating a match?
-// TODO: Convert to server generate functions.
-/* ════════════════  C R E A T E  ════════════════ */
+import { ActionResult, safeParseForm, zObjectId } from "@/data/_helpers";
+import { toMatchHydratedOut, toMatchOut } from "./serializer";
+import { log } from "console";
 
 export async function createMatch(
-  prevState: State,
+  tournamentId: string,
+  _prev: unknown,
   formData: FormData
 ): Promise<ActionResult> {
-  const validatedFields = WriteMatch.safeParse({
-    tournamentId: formData.get("tournamentId"),
-    round: formData.get("round"),
-    homeTeamId: formData.get("homeTeamId"),
-    awayTeamId: formData.get("awayTeamId"),
-    /* score field arrives as JSON string  ➜  { home: 2, away: 1 } */
-    score: formData.get("score")
-      ? JSON.parse(String(formData.get("score")))
-      : undefined,
-  });
+  logger.debug("matches.create.start", { tournamentId });
 
-  if (!validatedFields.success) {
+  const tid = zObjectId.safeParse(tournamentId);
+  if (!tid.success) {
+    logger.warn("matches.create.invalid_tournamentId", { tournamentId });
+    return { ok: false, message: "Invalid tournament ID." };
+  }
+
+  formData.set("tournamentId", tournamentId);
+
+  const validated = safeParseForm(formData, MatchCreateIn);
+
+  if (!validated.success) {
+    const { fieldErrors } = z.flattenError(validated.error);
+    logger.warn("matches.create.invalid_fields", { fieldErrors });
     return {
       ok: false,
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: "Missing Fields. Failed to Create Match.",
+      message: "Validation failed.",
+      errors: fieldErrors,
     };
   }
 
   try {
     await getConn();
-    await MatchModel.create(validatedFields.data);
+    const doc = await time("db.matches.create", () =>
+      MatchModel.create(validated.data)
+    );
+
+    logger.info("matches.create.ok", {
+      matchId: doc._id,
+      tournamentId: doc.tournamentId,
+    });
   } catch (error: any) {
-    logger.error(error);
+    logger.error("matches.create.error", { error });
     return { ok: false, message: "Database Error: Failed to Create Match." };
   }
 
-  revalidatePath("/tournament/matches");
-  redirect("/tournament/matches");
+  revalidatePath(`/tournament/${tid}/schedule`);
+  redirect(`/tournament/${tid}/schedule`);
 }
 
 /* ════════════════  R E A D  ════════════════ */
-
-export async function fetchAllMatches(): Promise<Match[]> {
-  await getConn();
-  /* lean() returns plain objects → smaller payload for RSC */
-  return MatchModel.find().sort({ name: 1 }).lean<Match[]>();
+export async function getMatch(matchId: string): Promise<MatchOut | null> {
+  logger.debug("matches.get.start", { matchId });
+  const id = zObjectId.safeParse(matchId);
+  if (id.success) {
+    logger.warn("matches.get.invalid_id", { matchId });
+    throw new Error("Invalid match id.");
+  }
+  let row;
+  try {
+    await getConn();
+    row = await time("db.matches.findById", () =>
+      MatchModel.findById(id).lean().exec()
+    );
+  } catch (error: any) {
+    logger.error("matches.get.db_conn", { error });
+    throw new Error("Database Error: Failed to Retrieve Match.");
+  }
+  logger.debug("matches.get.ok", { matchId });
+  return row ? toMatchOut(row) : null;
 }
 
-export async function fetchMatchById(id: string): Promise<Match | null> {
-  /* throws if not a valid ObjectId */
-  zObjectId.parse(id);
-  await getConn();
-  return MatchModel.findById(id).lean<Match>();
+export async function listMatches(
+  tournamentId: string,
+  limit = 100
+): Promise<MatchOut[] | null> {
+  logger.debug("matches.list.byTournament.start", { tournamentId });
+  const tid = zObjectId.safeParse(tournamentId);
+  if (!tid.success) {
+    logger.warn("matches.list.byTournament.invalid_id", { tournamentId });
+    throw new Error("Invalid tournament ID.");
+  }
+
+  let rows;
+  try {
+    await getConn();
+    rows = await time("db.matches.findByTournament", () =>
+      MatchModel.find({ tournamentId: tid }).limit(limit).lean().exec()
+    );
+  } catch (error: any) {
+    logger.error("matches.list.byTournament.db_conn", { error });
+    throw new Error("Database Error: Failed to Retrieve Matches.");
+  }
+
+  logger.debug("matches.list.byTournament.ok", { tournamentId, limit });
+  return rows ? rows.map(toMatchOut) : null;
 }
 
-export type HydratedMatch = {
-  _id: string;
-  tournamentId: string;
-  group?: { _id: string; name: string } | null;
-  round: number;
-  leg: number;
-  date?: string | null; // ISO
-  start_time?: string | null; // HH:MM
-  end_time?: string | null; // HH:MM
-  status: "pending" | "scheduled" | "completed" | "canceled";
-  conflict_reason?: string | null;
-  venue?: { _id: string; name: string } | null;
-  homeTeam: { _id: string; name: string };
-  awayTeam: { _id: string; name: string };
-  score?: { home?: number | null; away?: number | null };
-  updatedAt?: string;
-  createdAt?: string;
-};
+export async function listMatchesHydrated(
+  tournamentId: string,
+  limit = 100
+): Promise<MatchHydratedOut[] | null> {
+  logger.debug("matches.list.hydrated.start", { tournamentId, limit });
 
-export async function fetchMatchesByTournamentIdHydrated(
-  tournamentId: string
-): Promise<HydratedMatch[]> {
-  const tid = new Types.ObjectId(tournamentId);
+  const tid = zObjectId.safeParse(tournamentId);
+  if (!tid.success) {
+    logger.warn("matches.list.hydrated.invalid_id", { tournamentId });
+    throw new Error("Invalid tournament ID.");
+  }
 
-  const rows = await MatchModel.aggregate([
-    {
-      $match: {
-        tournamentId: tid,
+  let rows;
+  try {
+    await getConn();
+
+    rows = await time("db.matches.find.hydrated", () =>
+      MatchModel.find({
+        tournamentId: tid.data,
         $or: [{ isDeleted: { $exists: false } }, { isDeleted: false }],
-      },
-    },
+      })
+        .sort({ date: 1, start_time: 1, round: 1, leg: 1 })
+        .limit(limit)
+        .populate({ path: "homeTeamId", select: "_id name" })
+        .populate({ path: "awayTeamId", select: "_id name" })
+        .populate({ path: "venueId", select: "_id name" })
+        .lean()
+        .exec()
+    );
+  } catch (error: any) {
+    logger.error("matches.list.hydrated.db_conn", { error });
+    throw new Error("Database Error: Failed to Retrieve Matches.");
+  }
+  logger.debug("matches.list.hydrated.ok", { tournamentId, limit });
 
-    // home team (include groupId!)
-    {
-      $lookup: {
-        from: "teams",
-        localField: "homeTeamId",
-        foreignField: "_id",
-        as: "homeTeam",
-        pipeline: [{ $project: { _id: 1, name: 1, groupId: 1 } }],
-      },
-    },
-    { $unwind: "$homeTeam" },
-
-    // away team (include groupId!)
-    {
-      $lookup: {
-        from: "teams",
-        localField: "awayTeamId",
-        foreignField: "_id",
-        as: "awayTeam",
-        pipeline: [{ $project: { _id: 1, name: 1, groupId: 1 } }],
-      },
-    },
-    { $unwind: "$awayTeam" },
-
-    // Compute an effective groupId (prefer match.groupId, else homeTeam.groupId, else awayTeam.groupId)
-    {
-      $addFields: {
-        _effectiveGroupId: {
-          $ifNull: [
-            "$groupId",
-            {
-              $ifNull: ["$homeTeam.groupId", "$awayTeam.groupId"],
-            },
-          ],
-        },
-      },
-    },
-
-    // group (optional) using the computed id
-    {
-      $lookup: {
-        from: "groups",
-        localField: "_effectiveGroupId",
-        foreignField: "_id",
-        as: "group",
-        pipeline: [{ $project: { _id: 1, name: 1 } }],
-      },
-    },
-    { $unwind: { path: "$group", preserveNullAndEmptyArrays: true } },
-
-    // venue (optional)
-    {
-      $lookup: {
-        from: "venues",
-        localField: "venueId",
-        foreignField: "_id",
-        as: "venue",
-        pipeline: [{ $project: { _id: 1, name: 1 } }],
-      },
-    },
-    { $unwind: { path: "$venue", preserveNullAndEmptyArrays: true } },
-
-    // shape output
-    {
-      $project: {
-        _id: { $toString: "$_id" },
-        tournamentId: { $toString: "$tournamentId" },
-        round: 1,
-        leg: 1,
-        date: 1,
-        start_time: 1,
-        end_time: 1,
-        status: 1,
-        conflict_reason: 1,
-        score: 1,
-        updatedAt: 1,
-        createdAt: 1,
-        homeTeam: {
-          _id: { $toString: "$homeTeam._id" },
-          name: "$homeTeam.name",
-        },
-        awayTeam: {
-          _id: { $toString: "$awayTeam._id" },
-          name: "$awayTeam.name",
-        },
-        group: {
-          $cond: [
-            { $ifNull: ["$group", false] },
-            { _id: { $toString: "$group._id" }, name: "$group.name" },
-            null,
-          ],
-        },
-        venue: {
-          $cond: [
-            { $ifNull: ["$venue", false] },
-            { _id: { $toString: "$venue._id" }, name: "$venue.name" },
-            null,
-          ],
-        },
-      },
-    },
-
-    // sensible default ordering
-    {
-      $sort: {
-        date: 1,
-        "venue.name": 1,
-        start_time: 1,
-        round: 1,
-        leg: 1,
-        "homeTeam.name": 1,
-      },
-    },
-  ]).exec();
-
-  return rows as HydratedMatch[];
+  // Normalize for the serializer (expects homeTeam/awayTeam/venue/group fields)
+  const hydrated = rows.map((doc: any) =>
+    toMatchHydratedOut({
+      ...doc,
+      homeTeam: doc.homeTeamId, // {_id, name}
+      awayTeam: doc.awayTeamId, // {_id, name}
+      venue: doc.venueId ?? null, // {_id, name} | null
+      group: undefined, // optional; set if you later populate groupId
+    })
+  );
+  return hydrated ? hydrated : null;
 }
 
 /* ════════════════  U P D A T E  ════════════════ */
 
 export async function updateMatch(
-  id: string,
-  prevState: State,
+  tid: string,
+  matchId: string,
+  _prev: unknown,
   formData: FormData
 ): Promise<ActionResult> {
-  const idCheck = zObjectId.safeParse(formData.get("id"));
+  logger.debug("matches.update.start", { tid, matchId });
 
-  const validatedFields = WriteMatch.safeParse({
-    tournamentId: formData.get("tournamentId"),
-    round: formData.get("round"),
-    homeTeamId: formData.get("homeTeamId"),
-    awayTeamId: formData.get("awayTeamId"),
-    /* score field arrives as JSON string  ➜  { home: 2, away: 1 } */
-    score: formData.get("score")
-      ? JSON.parse(String(formData.get("score")))
-      : undefined,
-  });
+  const idCheck = zObjectId.safeParse(tid);
+  if (!idCheck.success) {
+    logger.warn("matches.update.invalid_id", { tid });
+    throw new Error("Invalid tournament ID.");
+  }
 
-  if (!validatedFields.success) {
+  formData.set("tournamentId", tid);
+
+  const validated = safeParseForm(formData, MatchUpdateIn);
+
+  if (!validated.success) {
+    const { fieldErrors } = z.flattenError(validated.error);
+    logger.warn("matches.update.invalid_fields", { fieldErrors });
     return {
       ok: false,
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: "Missing Fields. Failed to Update Match.",
+      message: "Validation Failed.",
+      errors: fieldErrors,
     };
+  }
+
+  const { _id, ...patch } = validated.data;
+  if (!_id) {
+    logger.warn("matches.update.missing_id");
+    return { ok: false, message: "Missing match id." };
   }
 
   try {
     await getConn();
-    await MatchModel.findByIdAndUpdate(idCheck.data, validatedFields.data, {
-      runValidators: true,
-      new: false,
-    });
+    const updated = await time("db.matches.update", () =>
+      MatchModel.findByIdAndUpdate(idCheck.data, validated.data, {
+        runValidators: true,
+        new: false,
+      }).exec()
+    );
+    if (!updated) {
+      logger.warn("matches.update.not_found", { id: _id });
+      return { ok: false, message: "Match not found." };
+    }
+    logger.info("matches.update.ok", { id: updated._id });
   } catch (error: any) {
-    logger.error(error);
+    logger.error("matches.update.fail", { error });
     return { ok: false, message: "Database Error: Failed to Update Match." };
   }
 
-  revalidatePath("/tournament/matches");
-  redirect("/tournament/matches");
+  revalidatePath(`/tournament/${tid}/schedule`);
+  redirect(`/tournament/${tid}/schedule`);
 }
 
-/* ════════════════  D E L E T E  ════════════════ */
-export async function deleteMatch(id: string): Promise<ActionResult> {
-  const idCheck = zObjectId.safeParse(id);
+/* ════════════════  D E L E T E (soft) ════════════════ */
+export async function deleteMatch(
+  tid: string,
+  matchId: string,
+  by?: string,
+  reason?: string
+): Promise<ActionResult> {
+  logger.debug("matches.delete.start", { matchId });
 
-  if (!idCheck.success) {
+  const id = zObjectId.safeParse(matchId);
+  if (!id.success) {
+    logger.warn("matches.delete.invalid_id", { matchId });
     return {
       ok: false,
-      errors: { id: ["Invalid id"] },
       message: "Invalid id.",
     };
   }
 
   try {
     await getConn();
-    await MatchModel.findByIdAndDelete(idCheck.data);
+    const match = await time("db.matches.delete", () =>
+      MatchModel.findById(id.data)
+    );
+    if (!match) {
+      logger.warn("matches.delete.not_found", { id: id.data });
+      return { ok: false, message: "Match not found." };
+    }
+    await time("db.matches.softDelete", () =>
+      (match as any).softDelete(by, reason)
+    );
+    logger.info("matches.delete.ok", { id: match._id });
   } catch (error: any) {
-    logger.error(error);
+    logger.error("matches.delete.fail", error);
     return { ok: false, message: "Database Error: Failed to Delete Match" };
   }
 
-  revalidatePath("/tournament/matches");
-  /* stay on same page after deletion */
+  revalidatePath(`/tournament/${tid}/schedule`);
+  return { ok: true };
+}
+
+export async function restoreMatch(
+  tid: string,
+  matchId: string
+): Promise<ActionResult> {
+  logger.debug("matches.restore.start", { matchId });
+
+  const id = zObjectId.safeParse(matchId);
+  if (!id.success) {
+    logger.warn("matches.restore.invalid_id", { matchId });
+    return {
+      ok: false,
+      message: "Invalid id.",
+    };
+  }
+
+  try {
+    await getConn();
+    const match = await time("db.matches.restore", () =>
+      MatchModel.findById(id.data)
+    );
+    if (!match) {
+      logger.warn("matches.restore.not_found", { id: id.data });
+      return { ok: false, message: "Match not found." };
+    }
+    await time("db.matches.restore", () => (match as any).restore());
+    logger.info("matches.restore.ok", { id: match._id });
+  } catch (error: any) {
+    logger.error("matches.restore.fail", error);
+    return { ok: false, message: "Database Error: Failed to Restore Match" };
+  }
+
+  revalidatePath(`/tournament/${tid}/schedule`);
   return { ok: true };
 }

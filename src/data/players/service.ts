@@ -242,6 +242,7 @@ export async function restorePlayer(
   tid: string,
   playerId: string
 ): Promise<ActionResult> {
+  logger.debug("players.restore.start", { playerId });
   const id = zObjectId.safeParse(playerId);
   if (!id.success) {
     logger.warn("players.restore.invalid_id", { playerId });
