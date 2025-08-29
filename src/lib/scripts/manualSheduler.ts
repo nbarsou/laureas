@@ -2,7 +2,7 @@ import "dotenv/config";
 import mongoose, { Types } from "mongoose";
 import { getConn } from "@/lib/db";
 
-import { TournamentModel } from "@/data/tournaments/schema";
+import { TournamentModel } from "@/data/tournaments/model";
 import { TeamModel, type TeamDb } from "@/data/teams/schema";
 import { MatchModel } from "@/data/matches/schema";
 import { VenueModel } from "@/data/venues/schema";

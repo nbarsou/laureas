@@ -9,7 +9,7 @@ import { addDays, startOfDay } from "date-fns";
 
 // Adjust these imports to your project structure:
 import { getConn } from "@/lib/db";
-import { TournamentModel } from "@/data/tournaments/schema";
+import { TournamentModel } from "@/data/tournaments/model";
 import { TeamModel } from "@/data/teams/schema";
 import { MatchModel } from "@/data/matches/schema";
 import { VenueModel } from "@/data/venues/schema";

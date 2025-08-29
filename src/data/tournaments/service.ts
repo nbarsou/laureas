@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getConn } from "@/lib/db";
 import { logger } from "@/lib/logging";
 
-import { TournamentModel } from "./schema";
+import { TournamentModel } from "./model";
 import {
   TournamentCreate,
   TournamentUpdate,

@@ -1,5 +1,5 @@
 // src/data/tournaments/serializers.ts
-import type { TournamentDb } from "./schema";
+import type { TournamentDb } from "./model";
 import { TournamentOut, SchedulerSettingsShared, type Tournament } from "./dto";
 
 /** One doc ➜ DTO */

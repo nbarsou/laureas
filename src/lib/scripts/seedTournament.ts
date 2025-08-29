@@ -1,7 +1,7 @@
 // lib/seed/seedTournament.ts
 import { Types } from "mongoose";
 import { addDays } from "date-fns";
-import { TournamentModel } from "@/data/tournaments/schema";
+import { TournamentModel } from "@/data/tournaments/model";
 import { TeamModel } from "@/data/teams/schema";
 import { VenueModel } from "@/data/venues/schema";
 import { GroupModel } from "@/data/groups/schema";

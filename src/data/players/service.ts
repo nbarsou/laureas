@@ -19,18 +19,19 @@ import { ActionResult, safeParseForm, zObjectId } from "@/data/_helpers";
 
 export async function createPlayer(
   tid: string, // TODO: Replace with slugs later.
+  teamdId: string,
   _prev: unknown,
   formData: FormData
 ): Promise<ActionResult> {
-  logger.debug("players.create.start", { tid });
+  logger.debug("players.create.start", { teamdId });
 
-  const tidOk = zObjectId.safeParse(tid);
-  if (!tidOk.success) {
-    logger.warn("players.create.invalid_tournamentId", { tid });
-    return { ok: false, message: "Invalid tournament id." };
+  const id = zObjectId.safeParse(teamdId);
+  if (!id.success) {
+    logger.warn("players.create.invalid_teamId", { teamdId });
+    return { ok: false, message: "Invalid team id." };
   }
 
-  formData.set("tournamentId", tid);
+  formData.set("teamId", id.data);
 
   const validated = safeParseForm(formData, PlayerCreateIn);
 

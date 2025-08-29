@@ -3,171 +3,209 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
+
+import { TimeslotModel } from "./model";
 import {
-  TimeslotCreate,
-  TimeslotModel,
-  TimeslotUpdate,
-  type Timeslot,
-} from "@/data/timeslots/schema";
+  TimeslotCreateIn,
+  TimeslotUpdateIn,
+  TimeslotOut,
+  // TimeslotHydratedOut,
+} from "./dto";
+
 import { getConn } from "@/lib/db";
 import { logger } from "@/lib/logging";
-import { ActionResult, zObjectId } from "@/data/_helpers";
+import { time } from "@/lib/logging/timing";
+
+import {
+  ActionResult,
+  formDataToObject,
+  safeParseForm,
+  zObjectId,
+} from "@/data/_helpers";
+import { toTimeslotOut } from "./serializer";
+import { id } from "zod/locales";
 
 /** ---------- CREATE ---------- */
 export async function createTimeslot(
   tid: string,
+  venue_id: string,
   _prev: unknown,
-  form: FormData
+  formData: FormData
 ): Promise<ActionResult> {
-  const parsed = TimeslotCreate.safeParse({
-    venue_id: form.get("venue_id"),
-    day_of_week: Number(form.get("day_of_week")),
-    start_time: form.get("start_time"),
-    end_time: form.get("end_time"),
-    timezone: form.get("timezone") || "America/Mexico_City",
-    is_active: String(form.get("is_active") ?? "true") === "true",
-    label: form.get("label") || undefined,
-  });
+  logger.debug("timeslots.create.start", { venue_id });
 
-  if (!parsed.success) {
-    return {
-      ok: false,
-      errors: parsed.error.flatten().fieldErrors,
-      message: "Missing/invalid fields. Failed to create timeslot.",
-    };
+  const id = zObjectId.safeParse(venue_id);
+  if (!id.success) {
+    logger.warn("timeslots.create.invalid_venueId", { venue_id });
+    return { ok: false, message: "Invalid venue id." };
+  }
+
+  formData.set("venue_id", id.data);
+
+  const validated = safeParseForm(formData, TimeslotCreateIn);
+
+  if (!validated.success) {
+    const { fieldErrors } = z.flattenError(validated.error);
+    logger.warn("timeslots.create.invalid", { fieldErrors });
+    return { ok: false, message: "Validation failed.", errors: fieldErrors };
   }
 
   try {
     await getConn();
-    await TimeslotModel.create(parsed.data);
-  } catch (e: any) {
-    logger.error(e);
-    return { ok: false, message: "Database Error: Failed to create timeslot." };
+    const doc = await time("db.timeslots.create", () =>
+      TimeslotModel.create(validated.data)
+    );
+    logger.info("timeslots.create.ok", { id: String(doc._id), venue_id });
+  } catch (error: any) {
+    logger.error("timeslots.create.fail", error);
+    return { ok: false, message: "Database Error: Failed to Create Timeslot." };
   }
 
-  revalidatePath(`/tournament/${tid}/venues/${parsed.data.venue_id}`);
-  redirect(`/tournament/${tid}/venues/${parsed.data.venue_id}`);
+  revalidatePath(`/tournament/${tid}/venues`);
+  redirect(`/tournament/${tid}/venues`);
 }
 
-/** ---------- READ (list all active, optional by venue) ---------- */
-export async function fetchTimeslots(params?: {
-  venueId?: string;
-  includeInactive?: boolean;
-}): Promise<Timeslot[]> {
-  await getConn();
-
-  const filter: Record<string, unknown> = {};
-  if (params?.venueId) {
-    zObjectId.parse(params.venueId);
-    filter.venue_id = params.venueId;
+/** ---------- READ  ---------- */
+export async function getTimeslot(
+  timeslotId: string
+): Promise<TimeslotOut | null> {
+  logger.debug("timeslots.get.start", { timeslotId });
+  const id = zObjectId.safeParse(timeslotId);
+  if (!id.success) {
+    logger.warn("timeslots.get.invalid_id", { timeslotId });
+    throw new Error("Invalid timeslot id.");
   }
-  if (!params?.includeInactive) {
-    filter.is_active = true;
+  let row;
+  try {
+    await getConn();
+    row = await time("db.timeslots.findById", () =>
+      TimeslotModel.findById(id.data).lean().exec()
+    );
+  } catch (error) {
+    logger.error("timeslots.get.fail", error);
+    throw new Error("Database Error: Failed to get timeslot.");
   }
-
-  return await TimeslotModel.find(filter)
-    .sort({ day_of_week: 1, start_time: 1 })
-    .lean<Timeslot[]>();
+  return row ? toTimeslotOut(row) : null;
 }
 
-/** ---------- READ (by id) ---------- */
-export async function fetchTimeslotById(id: string): Promise<Timeslot | null> {
-  zObjectId.parse(id);
-  await getConn();
-  return await TimeslotModel.findById(id).lean<Timeslot>();
+export async function listTimeslots(
+  venueId?: string,
+  limit = 100
+): Promise<TimeslotOut[] | null> {
+  logger.debug("timeslots.list.byVenue.start", { venueId });
+  const id = zObjectId.safeParse(venueId);
+  if (!id.success) {
+    logger.warn("timeslots.listbyVenue.invalid_venueId", { venueId });
+    return null;
+  }
+
+  let rows;
+  try {
+    await getConn();
+    rows = await time("db.timeslots.findByVenue", () =>
+      TimeslotModel.find({ venue_id: id.data })
+        .sort({ day_of_week: 1, start_time: 1 })
+        .limit(limit)
+        .lean()
+    );
+  } catch (error) {
+    logger.error("timeslots.list.byVenue.fail", error);
+    throw new Error("Database Error: Failed to fetch timeslots by venue");
+  }
+  return rows ? rows.map(toTimeslotOut) : null;
 }
 
 /** ---------- UPDATE ---------- */
 export async function updateTimeslot(
-  id: string,
+  tid: string,
+  venue_id: string,
   _prev: unknown,
-  form: FormData
+  formData: FormData
 ): Promise<ActionResult> {
-  const idCheck = zObjectId.safeParse(id);
-  if (!idCheck.success) return { ok: false, message: "Invalid id." };
+  logger.debug("timeslots.update.start", { venue_id });
+  const idCheck = zObjectId.safeParse(venue_id);
+  if (!idCheck.success) {
+    logger.warn("timeslots.update.invalid_id", { venue_id });
+    return { ok: false, message: "Invalid timeslot id" };
+  }
 
-  const parsed = TimeslotUpdate.safeParse({
-    venue_id: form.get("venue_id"),
-    day_of_week: Number(form.get("day_of_week")),
-    start_time: form.get("start_time"),
-    end_time: form.get("end_time"),
-    timezone: form.get("timezone") || "America/Mexico_City",
-    is_active: String(form.get("is_active") ?? "true") === "true",
-    label: form.get("label") || undefined,
-  });
+  formData.set("venue_id", tid);
 
-  if (!parsed.success) {
+  const validated = safeParseForm(formData, TimeslotUpdateIn);
+
+  if (!validated.success) {
+    const { fieldErrors } = z.flattenError(validated.error);
+    logger.warn("timeslots.update.invalid", { fieldErrors });
     return {
       ok: false,
-      errors: parsed.error.flatten().fieldErrors,
-      message: "Missing/invalid fields. Failed to update timeslot.",
+      message: "Validation failed",
+      errors: fieldErrors,
     };
   }
 
+  const { _id, ...patch } = validated.data;
+  if (!_id) {
+    logger.warn("timeslots.update.missing_id");
+    return { ok: false, message: "Missing timeslot id." };
+  }
+
   try {
     await getConn();
-    await TimeslotModel.findByIdAndUpdate(idCheck.data, parsed.data, {
-      runValidators: true,
-      new: false,
-    });
-  } catch (e: any) {
-    logger.error(e);
+    const updated = await time("db.timeslots.updateById", () =>
+      TimeslotModel.findByIdAndUpdate(_id, patch, {
+        runValidators: true,
+        new: false,
+      }).exec()
+    );
+    if (!updated) {
+      logger.warn("timeslots.update.not_found", { id: _id });
+      return { ok: false, message: "Timeslot not found." };
+    }
+    logger.info("timeslots.update.ok", { id: String(updated._id), venue_id });
+  } catch (error: any) {
+    logger.error("timeslot.update.fail", error);
     return { ok: false, message: "Database Error: Failed to update timeslot." };
   }
 
-  // TODO : if modal then just revalidate the path.
-  // TODO: Adjust later the routes
-  revalidatePath("/tournament/timeslots");
-  const noRedirect = String(form.get("no_redirect") ?? "false") === "true";
-  if (noRedirect) {
-    return { ok: true, message: "Timeslot created." };
-  }
-
-  redirect("/tournament");
-}
-
-/** ---------- PARTIAL UPDATE: toggle is_active ---------- */
-export async function toggleTimeslotActive(
-  id: string,
-  active: boolean
-): Promise<ActionResult> {
-  const idCheck = zObjectId.safeParse(id);
-  if (!idCheck.success) return { ok: false, message: "Invalid id." };
-
-  try {
-    await getConn();
-    await TimeslotModel.findByIdAndUpdate(
-      idCheck.data,
-      { is_active: !!active },
-      { runValidators: true }
-    );
-  } catch (e: any) {
-    logger.error(e);
-    return { ok: false, message: "Database Error: Failed to toggle timeslot." };
-  }
-
-  revalidatePath("/dashboard/timeslots");
+  revalidatePath(`/tournament/${tid}/venues/${venue_id}`);
   return { ok: true };
 }
 
-/** ---------- DELETE ---------- */
+/* ════════════════  D E L E T E  (soft) ════════════════ */
 export async function deleteTimeslot(
-  id: string,
+  tid: string,
+  timeslotId: string,
+  venue_id: string,
   by?: string,
   reason?: string
 ): Promise<ActionResult> {
+  logger.debug("timeslots.delete.start", { timeslotId });
+
+  const id = zObjectId.safeParse(timeslotId);
+  if (!id.success) {
+    logger.warn("timeslots.delete.invalid_id", { timeslotId });
+    return { ok: false, message: "Invalid timeslot id" };
+  }
+
   try {
     await getConn();
-    const timeslot = await TimeslotModel.findById(id);
+    const timeslot = await time("db.timeslot.findById", () =>
+      TimeslotModel.findById(id.data).exec()
+    );
     if (!timeslot) {
+      logger.warn("timeslots.delete.not_found", { id: timeslotId });
       return { ok: false, message: "Timeslot not found." };
     }
-    await (timeslot as any).softDelete?.(by, reason); // instance method from plugin
-  } catch (e: any) {
-    logger.error(e);
+    await time("db.timeslots.softDelete", () =>
+      (timeslot as any).softDelete(by, reason)
+    );
+    logger.info("timeslots.delete.ok", { timeslotId });
+  } catch (error) {
+    logger.error("timeslots.delete.fail", error);
     return { ok: false, message: "Database Error: Failed to delete timeslot." };
   }
 
-  revalidatePath("/dashboard/timeslots");
+  revalidatePath(`/tournament/${tid}/venues/${venue_id}`);
   return { ok: true };
 }

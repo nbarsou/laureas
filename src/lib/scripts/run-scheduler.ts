@@ -4,7 +4,7 @@ import { getConn } from "@/lib/db";
 
 import { seedTournament } from "@/lib/scripts/seedTournament"; // or "@/lib/scripts/seedTournament"
 
-import { TournamentModel } from "@/data/tournaments/schema";
+import { TournamentModel } from "@/data/tournaments/model";
 import { TeamModel, type TeamDb } from "@/data/teams/schema";
 import { MatchModel } from "@/data/matches/schema";
 import { VenueModel } from "@/data/venues/schema";
