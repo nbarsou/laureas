@@ -1,9 +1,8 @@
 // src/data/tournaments/serializers.ts
-import type { TournamentDb } from "./model";
 import { TournamentOut, SchedulerSettingsShared, type Tournament } from "./dto";
 
 /** One doc ➜ DTO */
-export function toTournamentOut(row: TournamentDb & { _id: any }): Tournament {
+export function toTournamentOut(row: Record<string, any>): Tournament {
   const dto = {
     _id: String(row._id),
     name: row.name,
@@ -13,11 +12,4 @@ export function toTournamentOut(row: TournamentDb & { _id: any }): Tournament {
     settings: SchedulerSettingsShared.parse(row.settings ?? {}),
   };
   return TournamentOut.parse(dto);
-}
-
-/** Many docs ➜ DTOs */
-export function toTournamentOutMany(
-  rows: Array<TournamentDb & { _id: any }>
-): Tournament[] {
-  return rows.map(toTournamentOut);
 }

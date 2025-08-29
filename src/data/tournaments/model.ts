@@ -56,5 +56,5 @@ TournamenSchema.plugin(versionSemverPlugin, {
   defaultVersion: TOURNAMENT_VERSION,
 });
 
-export const TimeslotModel =
+export const TournamentModel =
   models.Tournament || model("Tournament", TournamenSchema);

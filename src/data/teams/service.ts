@@ -184,19 +184,27 @@ export async function listTeamsWithGroupName(
 /* ════════════════  U P D A T E  ════════════════ */
 // TODO: Add teamId as a param.
 export async function updateTeam(
-  tid: string, // TODO: Replace with slug
+  teamId: string, // TODO: Replace with slug
+  tournamentId: string,
   _prev: unknown,
   formData: FormData
 ): Promise<ActionResult> {
-  logger.debug("teams.update.start", { tid });
+  logger.debug("teams.update.start", { teamId });
 
-  const tidOk = zObjectId.safeParse(tid);
-  if (!tidOk.success) {
+  const tid = zObjectId.safeParse(tournamentId);
+  if (!tid.success) {
     logger.warn("teams.update.invalid_id", { tid });
     return { ok: false, message: "Invalid tournament id." };
   }
 
-  formData.set("tournamentId", tid);
+  const id = zObjectId.safeParse(teamId);
+  if (!id.success) {
+    logger.warn("teams.update.invalid_id", { id });
+    return { ok: false, message: "Invalid team id." };
+  }
+
+  formData.set("tournamentId", tid.data);
+  formData.set("teamId", id.data);
 
   const validated = safeParseForm(formData, TeamUpdateIn);
   if (!validated.success) {
@@ -211,10 +219,6 @@ export async function updateTeam(
   }
 
   const { _id, ...patch } = validated.data;
-  if (!_id) {
-    logger.warn("teams.update.missing_id");
-    return { ok: false, message: "Missing team id." };
-  }
 
   try {
     await getConn();

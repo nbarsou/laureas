@@ -13,7 +13,7 @@ import {
   type Tournament,
   SCHEDULER_DEFAULTS,
 } from "./dto";
-import { toTournamentOut, toTournamentOutMany } from "./serializers";
+import { toTournamentOut } from "./serializers";
 
 export type ActionResult = {
   ok: boolean;
@@ -145,7 +145,7 @@ export async function listTournaments(): Promise<Tournament[]> {
   )
     .sort({ startDate: 1 })
     .lean();
-  return toTournamentOutMany(rows as any);
+  return rows.map(toTournamentOut);
 }
 
 /* GET ONE — serialize or null */
