@@ -50,6 +50,6 @@ export async function createTeamAction(
     return { ok: false, message: "Database Error: Failed to create team." };
   }
 
-  revalidatePath(`/tournament/${tidOk.data}/teams`);
-  redirect(`/tournament/${tidOk.data}/teams`);
+  revalidatePath(`/tournaments/${tidOk.data}/teams`);
+  redirect(`/tournaments/${tidOk.data}/teams`);
 }

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { MatchModel } from "./schema";
+import { MatchModel } from "./model";
 import {
   MatchCreateIn,
   MatchUpdateIn,

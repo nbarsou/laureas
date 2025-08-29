@@ -1,6 +1,6 @@
 "use client";
 
-import { deleteVenue } from "@/data/venues/service";
+import { softDeleteVenue } from "@/data/venues/service";
 import { TrashIcon } from "@heroicons/react/16/solid";
 
 const btnBase: React.CSSProperties = {
@@ -19,9 +19,9 @@ const btnBase: React.CSSProperties = {
   marginLeft: 4,
 };
 
-export function DeleteButton({ id }: { id: string }) {
+export function DeleteButton({ id, tid }: { id: string; tid: string }) {
   const handleDelete = async () => {
-    await deleteVenue(id);
+    await softDeleteVenue(tid, id);
   };
   return (
     <form action={handleDelete} style={{ display: "inline" }}>

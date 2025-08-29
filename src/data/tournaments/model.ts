@@ -1,5 +1,5 @@
 // src/data/tournaments/model.ts
-import "server-only";
+// import "server-only";
 import { Schema, model, models } from "mongoose";
 import { softDeletePlugin } from "@/data/_plugins/softDelete";
 import { versionSemverPlugin } from "@/data/_plugins/version";

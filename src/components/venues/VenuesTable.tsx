@@ -1,5 +1,5 @@
 // components/venues/VenuesTable.tsx
-import { fetchVenues, fetchVenuesByTournamentId } from "@/data/venues/service";
+import { listVenues } from "@/data/venues/service";
 import { DeleteButton } from "@/components/venues/DeleteVenueButton";
 import ClickableRow from "@/components/common/ClickableRow";
 import { EditButton } from "@/components/common/EditButton";
@@ -13,7 +13,7 @@ type VenueRow = {
 };
 
 export default async function VenuesTable({ tid }: { tid: string }) {
-  const venues = (await fetchVenuesByTournamentId(tid)) as VenueRow[];
+  const venues = (await listVenues(tid)) as VenueRow[];
   logger.debug(`Fetched ${venues.length} venues for tournament ${tid}`);
   return (
     <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -51,7 +51,7 @@ export default async function VenuesTable({ tid }: { tid: string }) {
               >
                 <div style={{ display: "inline-flex", gap: 8 }}>
                   <EditButton path={`/tournament/${tid}/venues/edit/${id}`} />
-                  <DeleteButton id={id} />
+                  <DeleteButton id={id} tid={tid} />
                 </div>
               </td>
             </ClickableRow>

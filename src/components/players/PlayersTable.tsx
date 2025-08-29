@@ -46,7 +46,7 @@ export default async function PlayersTable({ tid, teamId }: Props) {
               style={{ ...cellStyle, textAlign: "right", whiteSpace: "nowrap" }}
             >
               <div style={{ display: "inline-flex", gap: 8 }}>
-                <DeleteButton id={t._id.toString()} />
+                <DeleteButton id={t._id.toString()} tid={tid} />
                 <EditButton
                   path={`/tournament/${tid}/teams/${t.teamId.toString()}/player/edit/${t._id.toString()}`}
                 />

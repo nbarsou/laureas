@@ -202,7 +202,7 @@ export async function updatePlayer(
 }
 
 /* ════════════════  D E L E T E  (soft) ════════════════ */
-export async function deletePlayer(
+export async function softDeletePlayer(
   tid: string,
   playerId: string,
   by?: string,

@@ -1,6 +1,6 @@
 "use client";
 
-import { deletePlayer } from "@/data/players/";
+import { softDeletePlayer } from "@/data/players/service";
 import { TrashIcon } from "@heroicons/react/16/solid";
 
 const btnBase: React.CSSProperties = {
@@ -21,7 +21,7 @@ const btnBase: React.CSSProperties = {
 
 export function DeleteButton({ id, tid }: { id: string; tid: string }) {
   const handleDelete = async () => {
-    await deletePlayer(id, tid);
+    await softDeletePlayer(id, tid);
   };
 
   return (

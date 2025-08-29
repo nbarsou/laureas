@@ -1,10 +1,8 @@
 // /components/matches/MatchesByDayList.tsx (Server Component)
 import * as React from "react";
 import Link from "next/link";
-import {
-  fetchMatchesByTournamentIdHydrated,
-  type HydratedMatch,
-} from "@/data/matches/service";
+import { listMatchesHydrated } from "@/data/matches/service";
+import { MatchHydratedOut } from "@/data/matches/dto";
 
 /* --- helpers --- */
 // Accept Date | string | null
@@ -62,7 +60,7 @@ function fmtKickoff(date?: DLike, hhmm?: string | null) {
   });
 }
 
-function fmtScore(s?: HydratedMatch["score"]) {
+function fmtScore(s?: MatchHydratedOut["score"]) {
   if (!s || (s.home == null && s.away == null)) return null;
   return `${s.home ?? 0} – ${s.away ?? 0}`;
 }
@@ -72,10 +70,18 @@ export default async function MatchesByDayList({
 }: {
   tournamentId: string;
 }) {
-  const rows = await fetchMatchesByTournamentIdHydrated(tournamentId);
+  const rows = await listMatchesHydrated(tournamentId);
+
+  if (!rows) {
+    return (
+      <div className="px-3 py-6 text-center text-sm text-gray-400">
+        No matches found.
+      </div>
+    );
+  }
 
   // Group by YYYY-MM-DD (or UNSCHEDULED)
-  const buckets = new Map<string, HydratedMatch[]>();
+  const buckets = new Map<string, MatchHydratedOut[]>();
   for (const m of rows) {
     const key = dayKey(m.date);
     if (!buckets.has(key)) buckets.set(key, []);
