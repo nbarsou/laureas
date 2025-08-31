@@ -8,6 +8,7 @@ import Logo from "@/components/Logo";
 import LocaleSwitcher from "@/components/ui/LocaleSwitcher";
 import { use } from "react";
 import { setRequestLocale } from "next-intl/server";
+import { LoginButton } from "@/components/auth/login-button";
 
 export default function HomePage({
   params,
@@ -26,19 +27,27 @@ export default function HomePage({
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       {/* Sticky, translucent header (works in light & dark) */}
       <header className="fixed inset-x-0 top-0 z-50 bg-background/70 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex max-w-7xl items-center px-6 py-4">
+        <div className="w-full flex items-center justify-between px-12 py-8">
           {/* left: brand */}
           <div className="flex items-center gap-2">
-            <span className="text-xl font-semibold tracking-tight">
+            <span className="text-3xl font-semibold tracking-tight">
               Laureas
             </span>
           </div>
 
           {/* right: actions */}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-4">
             {/* <ThemeToggle /> */}
             <LocaleSwitcher />
-            <Button variant="default">Sign In</Button>
+            <LoginButton>
+              <Button
+                variant="default"
+                size="xl"
+                className="px-5 py-2 text-base"
+              >
+                {t("actions.signIn")}
+              </Button>
+            </LoginButton>
           </div>
         </div>
       </header>

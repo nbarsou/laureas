@@ -12,6 +12,9 @@ export const routing = defineRouting({
     // If all locales use the same pathname, a single
     // external path can be used for all locales
     "/": "/",
+
+    "/auth/login": "/auth/login",
+    "/auth/register": "/auth/register",
     // "/blog": "/blog",
 
     // // If locales use different paths, you can

@@ -97,5 +97,21 @@
   "Metadata": {
     "title": "Laureas",
     "description": "Description of Laureas"
+  },
+  "Auth": {
+    "login": {
+      "title": "Welcome back",
+      "cta": "Login",
+      "noAccount": "Don't have an account?",
+      "email": { "label": "Email", "ph": "Enter your email" },
+      "password": { "label": "Password", "ph": "Enter your password" },
+      "errors": {
+        "email": "Email is required",
+        "password": "Password is requiered"        
+      },
+      "social": {
+        "continueWith": "Sign in with {provider}"
+      }
+    }
   }
 }

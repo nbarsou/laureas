@@ -97,5 +97,22 @@
   "Metadata": {
     "title": "Laureas",
     "description": "Descripción de Laureas"
+  },
+  "Auth": {
+    "login": {
+      "title": "Bienvenido de nuevo",
+      "cta": "Iniciar sesión",
+      "noAccount": "¿No tienes cuenta?",
+      "email": { "label": "Correo", "ph": "Ingresa tu correo" },
+      "password": { "label": "Contraseña", "ph": "Ingresa tu contraseña" },
+      "errors": {
+        "email": "El correo es obligatorio.",
+        "password": "La contraseña es obligatoria."
+      },
+      "social": {
+        "continueWith": "Inicia sesión con {provider}"
+      }
+    }
   }
+
 }
