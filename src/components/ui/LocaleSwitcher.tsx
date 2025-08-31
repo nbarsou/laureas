@@ -29,7 +29,7 @@ export default function LocaleSwitcher() {
       </SelectTrigger>
       <SelectContent align="end">
         <SelectItem value="en">English</SelectItem>
-        <SelectItem value="es">Spanish</SelectItem>
+        <SelectItem value="es">Español</SelectItem>
       </SelectContent>
     </Select>
   );

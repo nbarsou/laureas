@@ -1,7 +1,98 @@
 {
   "HomePage": {
-    "title": "Hello world!",
-    "description": "Welcome to the homepage!"
+    "actions": {
+      "signIn": "Sign In",
+      "joinWaitlist": "Join the waitlist",
+      "bookOnboarding": "Book onboarding",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "contact": "Contact"
+    },
+    "hero": {
+      "titleLine1": "Modern tournament management",
+      "titleLine2": "for every sport",
+      "subtitle": "We’re building a simple, reliable way to run brackets, schedules and results without spreadsheets or chaos."
+    },
+    "whatExistsToday": "What exists today",
+    "cards": {
+      "crud": {
+        "title": "Full CRUD for your data",
+        "body": "Create and manage tournaments, groups, teams, players and custom fields. Edit anytime without breaking your schedule."
+      },
+      "venues": {
+        "title": "Venues & timeslots",
+        "body": "Add venues/courts with available timeslots so scheduling respects location and time constraints."
+      },
+      "roundRobin": {
+        "title": "Smart scheduling (Round-robin)",
+        "body": "Generate balanced round-robin matchups automatically with sensible ordering and byes."
+      },
+      "reschedule": {
+        "title": "Reschedule with confidence",
+        "body": "Drag or edit a match and we keep the schedule consistent—no double-booking or overlaps."
+      },
+      "results": {
+        "title": "Results & standings",
+        "body": "Record scores, update tables in real-time, and keep an accurate view of group rankings."
+      },
+      "publicPages": {
+        "title": "Public pages & custom domains",
+        "body": "Share read-only tournament pages for brackets, fixtures and tables. Use your own domain for a branded experience."
+      }
+    },
+    "sports": {
+      "title": "Sports",
+      "football": "Football",
+      "volleyball": "Volleyball",
+      "basketball": "Basketball",
+      "tennis": "Tennis",
+      "padel": "Padel",
+      "chip": {
+        "supported": "{sport} (supported)",
+        "coming": "{sport} (coming)"
+      },
+      "badges": {
+        "supported": "Supported",
+        "comingSoon": "Coming soon"
+      }
+    },
+    "roadmap": {
+      "title": "Public roadmap",
+      "items": {
+        "rrToPlayoffs": "Round-robin → Playoffs flow (auto bracket from group tables)",
+        "autoSeeding": "Automatic playoffs calculation & seeding",
+        "enhancedPublic": "Enhanced public pages (fixtures, results, live table)",
+        "customDomains": "Custom domains",
+        "moreSports": "Additional sports: Volleyball, Basketball, Tennis, Padel"
+      },
+      "status": {
+        "building": "Building",
+        "next": "Next",
+        "research": "Research"
+      }
+    },
+    "ctaSetupHelp": "Running an event soon? We’ll help you set it up.",
+    "faq": {
+      "q1": {
+        "q": "Can I use it today?",
+        "a": "Yes. You can run football tournaments with round-robin groups, keep results and standings, and share public pages."
+      },
+      "q2": {
+        "q": "What formats are available?",
+        "a": "Round-robin is live. Round-robin + playoffs with automatic seeding is in active development."
+      },
+      "q3": {
+        "q": "Which sports are supported?",
+        "a": "Football today. Volleyball, Basketball, Tennis and Padel are on the way."
+      },
+      "q4": {
+        "q": "Can I use my own domain?",
+        "a": "Yes — custom domains for your tournament site are available; general availability is coming soon."
+      }
+    },
+    "footer": {
+      "copyright": "© {year} Laureas, Inc."
+    }
   },
   "Metadata": {
     "title": "Laureas",

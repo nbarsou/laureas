@@ -1,11 +1,101 @@
 {
   "HomePage": {
-    "title": "¡Hola, mundo!",
-    "description": "¡Bienvenido a la página de inicio!"
+    "actions": {
+      "signIn": "Iniciar sesión",
+      "joinWaitlist": "Unirse a la lista de espera",
+      "bookOnboarding": "Agendar onboarding",
+      "privacy": "Privacidad",
+      "terms": "Términos",
+      "contact": "Contacto"
+    },
+    "hero": {
+      "titleLine1": "Gestión moderna de torneos",
+      "titleLine2": "para cada deporte",
+      "subtitle": "Estamos construyendo una forma simple y confiable de manejar llaves, calendarios y resultados sin hojas de cálculo ni caos."
+    },
+    "whatExistsToday": "Lo que existe hoy",
+    "cards": {
+      "crud": {
+        "title": "CRUD completo para tus datos",
+        "body": "Crea y administra torneos, grupos, equipos, jugadores y campos personalizados. Edita en cualquier momento sin afectar tu calendario."
+      },
+      "venues": {
+        "title": "Sedes y horarios",
+        "body": "Agrega sedes/canchas con horarios disponibles para que la programación respete ubicación y restricciones de tiempo."
+      },
+      "roundRobin": {
+        "title": "Programación inteligente (Round-robin)",
+        "body": "Genera enfrentamientos balanceados de round-robin automáticamente con un orden lógico y descansos."
+      },
+      "reschedule": {
+        "title": "Reprograma con confianza",
+        "body": "Arrastra o edita un partido y mantenemos el calendario consistente—sin doble reservación ni empalmes."
+      },
+      "results": {
+        "title": "Resultados y posiciones",
+        "body": "Registra marcadores, actualiza tablas en tiempo real y mantén una vista precisa de las clasificaciones."
+      },
+      "publicPages": {
+        "title": "Páginas públicas y dominios personalizados",
+        "body": "Comparte páginas de torneos de solo lectura con llaves, partidos y tablas. Usa tu propio dominio para una experiencia con marca."
+      }
+    },
+    "sports": {
+      "title": "Deportes",
+      "football": "Fútbol",
+      "volleyball": "Voleibol",
+      "basketball": "Básquetbol",
+      "tennis": "Tenis",
+      "padel": "Pádel",
+      "chip": {
+        "supported": "{sport} (disponible)",
+        "coming": "{sport} (próximamente)"
+      },
+      "badges": {
+        "supported": "Disponible",
+        "comingSoon": "Próximamente"
+      }
+    },
+    "roadmap": {
+      "title": "Plan de desarrollo",
+      "items": {
+        "rrToPlayoffs": "Flujo de round-robin → eliminatorias (llave automática desde tablas de grupo)",
+        "autoSeeding": "Cálculo y siembra automática de eliminatorias",
+        "enhancedPublic": "Páginas públicas mejoradas (partidos, resultados, tabla en vivo)",
+        "customDomains": "Dominios personalizados",
+        "moreSports": "Más deportes: Voleibol, Básquetbol, Tenis, Pádel"
+      },
+      "status": {
+        "building": "En desarrollo",
+        "next": "Próximo",
+        "research": "En investigación"
+      }
+    },
+    "ctaSetupHelp": "¿Próximamente organizas un evento? Te ayudamos a configurarlo.",
+    "faq": {
+      "q1": {
+        "q": "¿Puedo usarlo hoy?",
+        "a": "Sí. Puedes organizar torneos de fútbol con grupos round-robin, mantener resultados y posiciones, y compartir páginas públicas."
+      },
+      "q2": {
+        "q": "¿Qué formatos están disponibles?",
+        "a": "Round-robin ya está activo. Round-robin + eliminatorias con siembra automática está en desarrollo activo."
+      },
+      "q3": {
+        "q": "¿Qué deportes están disponibles?",
+        "a": "Fútbol hoy. Voleibol, Básquetbol, Tenis y Pádel están en camino."
+      },
+      "q4": {
+        "q": "¿Puedo usar mi propio dominio?",
+        "a": "Sí — los dominios personalizados para tu sitio de torneos están disponibles; la disponibilidad general llegará pronto."
+      }
+    },
+    "footer": {
+      "copyright": "© {year} Laureas, Inc."
+    }
   },
   "Metadata": {
     "title": "Laureas",
-    "description": "Descripción de Lauras"
+    "description": "Descripción de Laureas"
   }
-  
 }
