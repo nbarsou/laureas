@@ -22,7 +22,7 @@ import CardWrapper from "@/components/auth/card-wrapper";
 import { FormError } from "@/components/form-error";
 import { FormSucess } from "@/components/form-success";
 
-import { register } from "@/data/register";
+import { register } from "@/data/users/actions";
 
 export const RegisterForm = () => {
   const t = useTranslations("Auth.login");

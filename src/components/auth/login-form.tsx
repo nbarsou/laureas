@@ -22,14 +22,14 @@ import CardWrapper from "@/components/auth/card-wrapper";
 import { FormError } from "@/components/form-error";
 import { FormSucess } from "@/components/form-success";
 
-import { login } from "@/data/login";
+import { login } from "@/data/users/actions";
 
 export const LoginForm = () => {
   const t = useTranslations("Auth.login");
 
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | undefined>("");
-  const [sucess, setSuccess] = useState<string | undefined>("");
+  const [success, setSuccess] = useState<string | undefined>("");
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(makeLoginSchema(t)),
@@ -45,7 +45,7 @@ export const LoginForm = () => {
     startTransition(() => {
       login(values).then((data) => {
         setError(data.error);
-        setSuccess(data.sucess);
+        setSuccess(data.success);
       });
     });
   };
@@ -105,7 +105,7 @@ export const LoginForm = () => {
           {/* TODO: Internationalization */}
           <FormError message={error} />
           {/* TODO: Internationalization */}
-          <FormSucess message={sucess} />
+          <FormSucess message={success} />
           <Button type="submit" className="w-full" disabled={isPending}>
             {t("cta")}
           </Button>
