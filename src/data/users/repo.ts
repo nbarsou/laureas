@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { error } from "console";
 
 export async function getUserByEmail(email: string) {
   try {
@@ -16,9 +17,16 @@ export async function getUserByEmail(email: string) {
 export async function getUserById(id: string) {
   try {
     return await prisma.user.findUnique({
-      where: { id }, // id is a string mapped to @db.ObjectId
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        name: true,
+        image: true,
+      },
     });
-  } catch (_err) {
+  } catch (error) {
     return null;
   }
 }
