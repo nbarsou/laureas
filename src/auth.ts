@@ -1,12 +1,15 @@
 // src/auth.ts
 import NextAuth from "next-auth";
 import authConfig from "./auth.config";
+
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db";
+
 import { UserRole } from "./generated/prisma";
 import { getUserById } from "./data/users/repo";
 
 import { type DefaultSession } from "next-auth";
+
 declare module "next-auth" {
   /**
    * Returned by `auth`, `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
@@ -37,6 +40,20 @@ declare module "next-auth/jwt" {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
+  adapter: PrismaAdapter(prisma), // factory/promise is supported
+  pages: {
+    signIn: "/auth/login",
+    error: "/auth/error",
+  },
+  events: {
+    async linkAccount({ user }) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: new Date() },
+      });
+    },
+  },
   callbacks: {
     // async signIn({ user }) {
     //   if (!user.id) return false;
@@ -48,7 +65,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     // },
     async session({ token, session }) {
       if (token.sub && session.user) session.user.id = token.sub;
-      if (token.role && session.user) session.user.role = token.role;
+      if (token.role && session.user) {
+        session.user.role = token.role;
+      } else {
+        session.user.role = "USER";
+      }
       return session;
     },
     async jwt({ token }) {
@@ -61,7 +82,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
   },
-  adapter: PrismaAdapter(prisma), // factory/promise is supported
-  session: { strategy: "jwt" },
-  ...authConfig,
+  session: { strategy: "jwt", maxAge: 60 * 60 },
 });

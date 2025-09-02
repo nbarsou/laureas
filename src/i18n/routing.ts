@@ -15,6 +15,7 @@ export const routing = defineRouting({
 
     "/auth/login": "/auth/login",
     "/auth/register": "/auth/register",
+    "/auth/error": "/auth/error",
     // "/blog": "/blog",
 
     // // If locales use different paths, you can

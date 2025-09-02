@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import { useForm } from "react-hook-form";
+import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { makeLoginSchema, type LoginInput } from "@/schemas";
 
@@ -27,6 +28,10 @@ import { login } from "@/data/users/actions";
 export const LoginForm = () => {
   const t = useTranslations("Auth.login");
 
+  const searchParams = useSearchParams();
+  const urlError = searchParams.get("error") ? "Invalid credentials" : "";
+  const router = useRouter();
+
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
@@ -40,6 +45,10 @@ export const LoginForm = () => {
   });
 
   const onSubmit = (values: LoginInput) => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("error");
+    router.replace(url.toString());
+
     setError("");
     setSuccess("");
     startTransition(() => {
@@ -103,7 +112,7 @@ export const LoginForm = () => {
             />
           </div>
           {/* TODO: Internationalization */}
-          <FormError message={error} />
+          <FormError message={error || urlError} />
           {/* TODO: Internationalization */}
           <FormSucess message={success} />
           <Button type="submit" className="w-full" disabled={isPending}>
