@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db";
-import { error } from "console";
 
 export async function getUserByEmail(email: string) {
   try {
@@ -18,13 +17,6 @@ export async function getUserById(id: string) {
   try {
     return await prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        name: true,
-        image: true,
-      },
     });
   } catch (error) {
     return null;

@@ -2,10 +2,10 @@
 import NextAuth from "next-auth";
 import authConfig from "./auth.config";
 
-import { PrismaAdapter } from "@auth/prisma-adapter";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 
-import { UserRole } from "./generated/prisma";
+import { UserRole } from "@prisma/client";
 import { getUserById } from "./data/users/repo";
 
 import { type DefaultSession } from "next-auth";
@@ -30,7 +30,6 @@ declare module "next-auth" {
 
 // The `JWT` interface can be found in the `next-auth/jwt` submodule
 import { JWT } from "next-auth/jwt";
-
 declare module "next-auth/jwt" {
   /** Returned by the `jwt` callback and `auth`, when using JWT sessions */
   interface JWT {
@@ -55,14 +54,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   callbacks: {
-    // async signIn({ user }) {
-    //   if (!user.id) return false;
-    //   const existingUser = await getUserById(user.id);
-    //   if (!existingUser || !existingUser.emailVerified) {
-    //     return false;
-    //   }
-    //   return true;
-    // },
+    async signIn({ user, account }) {
+      if (account?.provider !== "credentials") return true;
+
+      if (!user.id) return false;
+
+      const existingUser = await getUserById(user.id);
+
+      // Prevent sign in without email verification
+      if (!existingUser || !existingUser.emailVerified) {
+        return false;
+      }
+      // TODO: Add 2FA check
+      return true;
+    },
     async session({ token, session }) {
       if (token.sub && session.user) session.user.id = token.sub;
       if (token.role && session.user) {

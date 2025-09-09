@@ -3,11 +3,11 @@
 import { useState, useTransition } from "react";
 
 import { useForm } from "react-hook-form";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { makeLoginSchema, type LoginInput } from "@/schemas";
+import { ResetSchema } from "@/schemas";
 
-import { useTranslations } from "next-intl";
+// import { useTranslations } from "next-intl";
 
 import {
   Form,
@@ -23,29 +23,25 @@ import CardWrapper from "@/components/auth/card-wrapper";
 import { FormError } from "@/components/form-error";
 import { FormSucess } from "@/components/form-success";
 
-import { login } from "@/data/users/actions";
-import Link from "next/link";
+import { reset } from "@/data/users/actions";
+import z from "zod";
 
-export const LoginForm = () => {
-  const t = useTranslations("Auth.login");
-
-  const searchParams = useSearchParams();
-  const urlError = searchParams.get("error") ? "Invalid credentials" : "";
+// TODO: Internationalization
+export const ResetForm = () => {
   const router = useRouter();
 
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
 
-  const form = useForm<LoginInput>({
-    resolver: zodResolver(makeLoginSchema(t)),
+  const form = useForm<z.infer<typeof ResetSchema>>({
+    resolver: zodResolver(ResetSchema),
     defaultValues: {
       email: "",
-      password: "",
     },
   });
 
-  const onSubmit = (values: LoginInput) => {
+  const onSubmit = (values: z.infer<typeof ResetSchema>) => {
     const url = new URL(window.location.href);
     url.searchParams.delete("error");
     router.replace(url.toString());
@@ -53,20 +49,17 @@ export const LoginForm = () => {
     setError("");
     setSuccess("");
     startTransition(() => {
-      login(values).then((data) => {
+      reset(values).then((data) => {
         setError(data.error);
         setSuccess(data.success);
       });
     });
   };
-
   return (
     <CardWrapper
-      headerLabel={t("title")}
-      backButtonLabel={t("noAccount")}
-      socialLabel={t("social.continueWith", { provider: "Google" })}
-      backButtonHref="/auth/register"
-      showSocial
+      headerLabel="Forgot your password"
+      backButtonLabel="Back to login"
+      backButtonHref="/auth/login"
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -76,12 +69,12 @@ export const LoginForm = () => {
               name="email"
               render={({ field }) => (
                 <>
-                  <FormLabel>{t("email.label")}</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       type="email"
-                      placeholder={t("email.ph")}
+                      placeholder="john.doe@email.com"
                       disabled={isPending}
                     />
                   </FormControl>
@@ -91,41 +84,13 @@ export const LoginForm = () => {
                 </>
               )}
             />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <>
-                  <FormLabel>{t("password.label")}</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="password"
-                      placeholder={t("password.ph")}
-                      disabled={isPending}
-                    />
-                  </FormControl>
-                  <Button
-                    size="sm"
-                    variant="link"
-                    asChild
-                    className="px-0 font-normal"
-                  >
-                    <Link href="/auth/reset">Forgot password?</Link>
-                  </Button>
-                  <FormMessage>
-                    {form.formState.errors.password?.message}
-                  </FormMessage>
-                </>
-              )}
-            />
           </div>
           {/* TODO: Internationalization */}
-          <FormError message={error || urlError} />
+          <FormError message={error} />
           {/* TODO: Internationalization */}
           <FormSucess message={success} />
           <Button type="submit" className="w-full" disabled={isPending}>
-            {t("cta")}
+            Send reset email
           </Button>
         </form>
       </Form>

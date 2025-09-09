@@ -15,7 +15,7 @@ import { LinkProps } from "@/i18n/navigation";
 interface CardWrapperProps {
   children: React.ReactNode;
   headerLabel: string;
-  socialLabel: string;
+  socialLabel?: string;
   backButtonLabel: string;
   backButtonHref: LinkProps["href"];
   showSocial?: boolean;
@@ -35,7 +35,7 @@ const CardWrapper = ({
         <AuthHeader label={headerLabel} />
       </CardHeader>
       <CardContent>{children}</CardContent>
-      {showSocial && (
+      {showSocial && socialLabel && (
         <CardFooter>
           <Social label={socialLabel} />
         </CardFooter>
