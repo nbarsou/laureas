@@ -9,6 +9,13 @@ export const ResetSchema = z.object({
   email: z.email(),
 });
 
+export const NewPasswordSchema = z.object({
+  password: z
+    .string()
+    .min(6, "Minimun 6 characters required")
+    .max(100, "Must be less than 100 characters"),
+});
+
 export function makeLoginSchema(t?: (key: string, values?: any) => string) {
   return z.object({
     email: z.email(

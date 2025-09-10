@@ -18,6 +18,7 @@ export const routing = defineRouting({
     "/auth/error": "/auth/error",
     "/auth/new-verification": "/auth/new-verification",
     "/auth/reset": "/auth/reset",
+    "/auth/new-password": "/auth/new-password",
     // "/blog": "/blog",
 
     // // If locales use different paths, you can
