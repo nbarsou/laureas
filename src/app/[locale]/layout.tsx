@@ -8,6 +8,7 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
+import { Toaster } from "sonner";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -42,6 +43,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${poppins.variable} antialiased`}>
+        <Toaster />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

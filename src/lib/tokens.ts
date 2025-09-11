@@ -3,7 +3,7 @@ import { prisma } from "./db";
 
 import { getVerificationTokenByEmail } from "@/data/verifications/repo";
 import { getPasswordResetTokenByEmail } from "@/data/passwords/repo";
-import { email } from "zod";
+
 
 export const generatePasswordResetToken = async (email: string) => {
   const token = uuidV4();
