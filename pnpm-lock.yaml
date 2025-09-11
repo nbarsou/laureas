@@ -4,10 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  mongodb: 6.19.0
-  bson: 6.10.4
-
 importers:
 
   .:
