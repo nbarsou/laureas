@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+     "vercel-build": "prisma generate && next build --turbopack",
     "build": "next build --turbopack",
     "start": "next start"
   },
@@ -54,9 +55,13 @@
     "typescript": "^5"
   },
   "pnpm": {
-    "overrides": {
-      "mongodb": "6.19.0",
-      "bson": "6.10.4"
-    }
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "prisma",
+      "@prisma/engines",
+      "bcrypt",
+      "sharp",
+      "@tailwindcss/oxide"
+    ]
   }
 }
