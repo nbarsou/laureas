@@ -2,11 +2,8 @@
 import NextAuth from "next-auth";
 import authConfig from "./auth.config";
 
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { prisma } from "@/lib/db";
+import { AccountStatus, UserRole } from "@prisma/client";
 
-import { UserRole } from "@prisma/client";
-import { getUserById } from "./data/users/repo";
 
 import { type DefaultSession } from "next-auth";
 
@@ -18,6 +15,7 @@ declare module "next-auth" {
     user: {
       /** The user's postal address. */
       role: UserRole;
+      status: AccountStatus;
       /**
        * By default, TypeScript merges new interface properties and overwrites existing ones.
        * In this case, the default session user properties will be overwritten,
@@ -34,58 +32,9 @@ declare module "next-auth/jwt" {
   /** Returned by the `jwt` callback and `auth`, when using JWT sessions */
   interface JWT {
     /** OpenID ID Token */
-    role?: UserRole;
+    role: UserRole;
+    status: AccountStatus;
   }
 }
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  ...authConfig,
-  adapter: PrismaAdapter(prisma), // factory/promise is supported
-  pages: {
-    signIn: "/auth/login",
-    error: "/auth/error",
-  },
-  events: {
-    async linkAccount({ user }) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { emailVerified: new Date() },
-      });
-    },
-  },
-  callbacks: {
-    async signIn({ user, account }) {
-      if (account?.provider !== "credentials") return true;
-
-      if (!user.id) return false;
-
-      const existingUser = await getUserById(user.id);
-
-      // Prevent sign in without email verification
-      if (!existingUser || !existingUser.emailVerified) {
-        return false;
-      }
-      // TODO: Add 2FA check
-      return true;
-    },
-    async session({ token, session }) {
-      if (token.sub && session.user) session.user.id = token.sub;
-      if (token.role && session.user) {
-        session.user.role = token.role;
-      } else {
-        session.user.role = "USER";
-      }
-      return session;
-    },
-    async jwt({ token }) {
-      if (!token.sub) return token;
-      const existingUser = await getUserById(token.sub);
-      if (!existingUser) {
-        return token;
-      }
-      token.role = existingUser.role;
-      return token;
-    },
-  },
-  session: { strategy: "jwt", maxAge: 60 * 60 },
-});
+export const { handlers, signIn, signOut, auth } = NextAuth(authConfig);

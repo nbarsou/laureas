@@ -18,15 +18,22 @@ enum UserRole {
   USER
 }
 
+enum AccountStatus {
+  WAITLISTED
+  ACTIVE
+  SUSPENDED
+}
+
 model User {
-  id            String    @id @default(cuid()) @map("_id")
+  id            String        @id @default(cuid()) @map("_id")
   name          String?
-  email         String?   @unique
+  email         String?       @unique
   emailVerified DateTime?
   password      String?
-  role          UserRole  @default(USER)
+  role          UserRole      @default(USER)
   image         String?
   accounts      Account[]
+  status        AccountStatus @default(WAITLISTED)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

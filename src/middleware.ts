@@ -13,6 +13,7 @@ import {
   authRoutes,
   LOGIN, // e.g. "/auth/login" or "/login"
 } from "@/routes";
+import { AccountStatus } from "@prisma/client";
 
 // 1) next-intl
 const intl = createMiddleware(routing);
@@ -55,17 +56,36 @@ const composed = auth((req) => {
   const path = req.nextUrl.pathname;
   const isLoggedIn = !!req.auth;
 
+  const status = req.auth?.user.status;
+
   const isApiAuthRoute = path.startsWith(apiAuthPrefix);
   const isPublicRoute = includesAnyRoute(path, publicRoutes);
   const isAuthRoute = includesAnyRoute(path, authRoutes);
   const isOnLogin = matchesRouteWithLocale(path, LOGIN);
+
+  const isOnWaitlist = matchesRouteWithLocale(path, "/waitlist");
+  const isProtectedRoute = !isPublicRoute && !isAuthRoute && !isApiAuthRoute;
 
   // Skip API auth paths (often excluded by matcher anyway)
   if (isApiAuthRoute) return NextResponse.next();
 
   // If already logged in and on an auth page → send to app
   if (isAuthRoute && isLoggedIn) {
-    return NextResponse.redirect(new URL(DEFAULT_LOGIN_REDIRECT, req.nextUrl));
+    const dest =
+      status !== AccountStatus.WAITLISTED
+        ? DEFAULT_LOGIN_REDIRECT
+        : "/waitlist";
+    return NextResponse.redirect(new URL(dest, req.nextUrl));
+  }
+
+  if (
+    isLoggedIn &&
+    (status === AccountStatus.WAITLISTED ||
+      status === AccountStatus.SUSPENDED) &&
+    isProtectedRoute &&
+    !isOnWaitlist
+  ) {
+    return NextResponse.redirect(new URL("/waitlist", req.nextUrl));
   }
 
   // If NOT logged in and trying to access a non-public page → go to login
