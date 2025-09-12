@@ -9,6 +9,7 @@ import LocaleSwitcher from "@/components/ui/LocaleSwitcher";
 import { use } from "react";
 import { setRequestLocale } from "next-intl/server";
 import { LoginButton } from "@/components/auth/login-button";
+import Link from "next/link";
 
 export default function HomePage({
   params,
@@ -68,9 +69,11 @@ export default function HomePage({
           </p>
 
           <div className="mt-8 flex justify-center gap-3">
-            <Button className="rounded-full">
-              {t("actions.joinWaitlist")}{" "}
-              <ArrowRight className="ml-2 h-4 w-4" />
+            <Button className="rounded-full" asChild>
+              <Link href="/register">
+                {t("actions.joinWaitlist")}{" "}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
           </div>
         </div>
